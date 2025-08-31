@@ -128,76 +128,87 @@ defmodule GlobalPulse.NaturalEventsMonitor do
 
   defp fetch_earthquake_data(state) do
     url = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_day.geojson"
+    Logger.info("🌍 USGS Earthquake API: Fetching from #{url}")
     
-    earthquakes = case HTTPoison.get(url) do
+    earthquakes = case HTTPoison.get(url, [], timeout: 10_000, recv_timeout: 10_000) do
       {:ok, %{status_code: 200, body: body}} ->
+        Logger.info("🌍 USGS Earthquake API: Raw Response (#{byte_size(body)} bytes)")
+        
         case Jason.decode(body) do
           {:ok, %{"features" => features}} ->
-            features
-            |> Enum.map(&parse_earthquake/1)
-            |> Enum.filter(&(&1.magnitude >= @magnitude_threshold))
-            |> Enum.sort_by(&(&1.magnitude), :desc)
-            |> Enum.take(20)
-          _ ->
-            mock_earthquake_data()
+            Logger.info("🌍 USGS Earthquake API: Found #{length(features)} earthquake records")
+            
+            parsed_earthquakes = features
+              |> Enum.map(&parse_earthquake/1)
+              |> Enum.filter(fn eq -> 
+                eq != nil and is_number(eq.magnitude) and eq.magnitude >= @magnitude_threshold
+              end)
+              |> Enum.sort_by(&(&1.magnitude), :desc)
+              |> Enum.take(20)
+            
+            Logger.info("🌍 Successfully parsed #{length(parsed_earthquakes)} earthquakes (magnitude >= #{@magnitude_threshold})")
+            
+            if length(parsed_earthquakes) > 0 do
+              # Log top earthquakes for verification
+              Enum.take(parsed_earthquakes, 3) |> Enum.each(fn eq ->
+                Logger.info("🌍   - M#{eq.magnitude} #{eq.location} (#{eq.time})")
+              end)
+              parsed_earthquakes
+            else
+              Logger.warning("🌍 EARTHQUAKE DATA STREAM: NO SIGNIFICANT EARTHQUAKES - No earthquakes above magnitude #{@magnitude_threshold}")
+              []
+            end
+            
+          {:error, decode_error} ->
+            Logger.error("🌍 USGS Earthquake API: JSON decode failed - #{inspect(decode_error)}")
+            []
         end
-      _ ->
-        mock_earthquake_data()
+      {:ok, %{status_code: status_code}} ->
+        Logger.warning("🌍 USGS Earthquake API: HTTP #{status_code} error")
+        []
+      {:error, %HTTPoison.Error{reason: reason}} ->
+        Logger.error("🌍 USGS Earthquake API: Connection error - #{reason}")
+        []
     end
     
     %{state | earthquakes: earthquakes, last_update: DateTime.utc_now()}
   end
 
   defp parse_earthquake(feature) do
-    props = feature["properties"]
-    coords = feature["geometry"]["coordinates"]
-    
-    %{
-      id: feature["id"],
-      magnitude: props["mag"],
-      location: props["place"],
-      latitude: Enum.at(coords, 1),
-      longitude: Enum.at(coords, 0),
-      depth: Enum.at(coords, 2),
-      time: parse_timestamp(props["time"]),
-      tsunami_warning: props["tsunami"] == 1,
-      felt_reports: props["felt"] || 0,
-      significance: props["sig"],
-      alert_level: props["alert"],
-      url: props["url"]
-    }
+    try do
+      props = feature["properties"]
+      coords = feature["geometry"]["coordinates"]
+      
+      # Validate required fields
+      magnitude = props["mag"]
+      location = props["place"]
+      
+      if is_number(magnitude) and is_binary(location) and is_list(coords) and length(coords) >= 2 do
+        %{
+          id: feature["id"],
+          magnitude: magnitude,
+          location: location,
+          latitude: Enum.at(coords, 1) || 0.0,
+          longitude: Enum.at(coords, 0) || 0.0,
+          depth: Enum.at(coords, 2) || 0.0,
+          time: parse_timestamp(props["time"]),
+          tsunami_warning: props["tsunami"] == 1,
+          felt_reports: props["felt"] || 0,
+          significance: props["sig"] || 0,
+          alert_level: props["alert"],
+          url: props["url"]
+        }
+      else
+        Logger.debug("🌍 Skipping invalid earthquake record: magnitude=#{inspect(magnitude)}, location=#{inspect(location)}")
+        nil
+      end
+    rescue
+      e ->
+        Logger.debug("🌍 Error parsing earthquake: #{inspect(e)}")
+        nil
+    end
   end
 
-  defp mock_earthquake_data do
-    [
-      %{
-        id: "eq001",
-        magnitude: 5.2 + :rand.uniform(),
-        location: "125km SE of Tokyo, Japan",
-        latitude: 34.5,
-        longitude: 140.2,
-        depth: 35.0,
-        time: DateTime.utc_now(),
-        tsunami_warning: false,
-        felt_reports: :rand.uniform(1000),
-        significance: 500,
-        alert_level: "yellow"
-      },
-      %{
-        id: "eq002",
-        magnitude: 4.8 + :rand.uniform(),
-        location: "50km W of Los Angeles, CA",
-        latitude: 34.0,
-        longitude: -118.8,
-        depth: 12.0,
-        time: DateTime.utc_now(),
-        tsunami_warning: false,
-        felt_reports: :rand.uniform(5000),
-        significance: 400,
-        alert_level: nil
-      }
-    ]
-  end
 
   defp fetch_weather_data(state) do
     api_key = System.get_env("OPENWEATHER_API_KEY", "demo")

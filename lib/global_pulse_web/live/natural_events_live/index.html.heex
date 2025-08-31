@@ -15,184 +15,6 @@
     </div>
   </div>
 
-  <!-- Event Summary Cards -->
-  <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-sm text-gray-400">Earthquakes (24h)</p>
-          <p class={"text-2xl font-bold #{natural_earthquake_color(length(@earthquakes))}"}>
-            <%= length(@earthquakes) %>
-          </p>
-        </div>
-        <div class="p-3 bg-red-500/20 rounded-lg">
-          <span class="text-2xl">🌍</span>
-        </div>
-      </div>
-    </div>
-    
-    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-sm text-gray-400">Active Hurricanes</p>
-          <p class="text-2xl font-bold text-white"><%= length(@hurricanes) %></p>
-        </div>
-        <div class="p-3 bg-blue-500/20 rounded-lg">
-          <span class="text-2xl">🌀</span>
-        </div>
-      </div>
-    </div>
-    
-    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-sm text-gray-400">Active Wildfires</p>
-          <p class="text-2xl font-bold text-white"><%= length(@wildfires) %></p>
-        </div>
-        <div class="p-3 bg-orange-500/20 rounded-lg">
-          <span class="text-2xl">🔥</span>
-        </div>
-      </div>
-    </div>
-    
-    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-sm text-gray-400">Space Weather</p>
-          <p class={"text-sm font-medium #{natural_space_weather_class(get_space_weather_severity(@space_weather))}"}>
-            <%= get_space_weather_severity(@space_weather) %>
-          </p>
-        </div>
-        <div class="p-3 bg-purple-500/20 rounded-lg">
-          <span class="text-2xl">🌌</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Recent Earthquakes -->
-  <%= if @selected_event_type in ["all", "earthquakes"] && length(@earthquakes) > 0 do %>
-    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
-      <h3 class="text-lg font-medium text-white mb-4">Recent Earthquakes</h3>
-      <div class="space-y-3">
-        <%= for earthquake <- Enum.take(@earthquakes, 5) do %>
-          <div class="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg">
-            <div class="flex items-center gap-4">
-              <div class={"w-12 h-12 rounded-full flex items-center justify-center #{natural_magnitude_color(earthquake.magnitude)}"}>
-                <span class="text-sm font-bold text-white">
-                  <%= format_magnitude(earthquake.magnitude) %>
-                </span>
-              </div>
-              <div>
-                <h4 class="text-sm font-semibold text-white">
-                  <%= earthquake.location %>
-                </h4>
-                <div class="flex items-center gap-4 text-xs text-gray-400">
-                  <span>Depth: <%= earthquake.depth %>km</span>
-                  <span>Felt: <%= earthquake.felt_reports %></span>
-                  <%= if earthquake.tsunami_warning do %>
-                    <span class="px-2 py-1 bg-red-500/20 text-red-400 rounded">
-                      🌊 Tsunami Warning
-                    </span>
-                  <% end %>
-                </div>
-              </div>
-            </div>
-            <div class="text-xs text-gray-500">
-              <%= natural_format_relative_time(earthquake.time) %>
-            </div>
-          </div>
-        <% end %>
-      </div>
-    </div>
-  <% end %>
-
-  <!-- Active Hurricanes -->
-  <%= if @selected_event_type in ["all", "hurricanes"] && length(@hurricanes) > 0 do %>
-    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
-      <h3 class="text-lg font-medium text-white mb-4">Active Hurricanes</h3>
-      <div class="space-y-4">
-        <%= for hurricane <- @hurricanes do %>
-          <div class="p-4 bg-gray-700/50 rounded-lg">
-            <div class="flex items-center justify-between mb-3">
-              <h4 class="text-lg font-semibold text-white">
-                Hurricane <%= hurricane.name %>
-              </h4>
-              <span class={"px-3 py-1 text-sm rounded #{natural_category_badge(hurricane.category)}"}>
-                Category <%= hurricane.category %>
-              </span>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <div class="text-xs text-gray-400">Wind Speed</div>
-                <div class="text-sm font-medium text-white">
-                  <%= round(hurricane.wind_speed) %> mph
-                </div>
-              </div>
-              <div>
-                <div class="text-xs text-gray-400">Pressure</div>
-                <div class="text-sm font-medium text-white">
-                  <%= round(hurricane.pressure) %> mb
-                </div>
-              </div>
-              <div>
-                <div class="text-xs text-gray-400">Movement</div>
-                <div class="text-sm font-medium text-white">
-                  <%= round(hurricane.movement.speed) %> mph
-                </div>
-              </div>
-            </div>
-          </div>
-        <% end %>
-      </div>
-    </div>
-  <% end %>
-
-  <!-- Active Wildfires -->
-  <%= if @selected_event_type in ["all", "wildfires"] && length(@wildfires) > 0 do %>
-    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
-      <h3 class="text-lg font-medium text-white mb-4">Active Wildfires</h3>
-      <div class="space-y-3">
-        <%= for fire <- @wildfires do %>
-          <div class="p-4 bg-gray-700/50 rounded-lg">
-            <div class="flex items-center justify-between mb-3">
-              <h4 class="text-lg font-semibold text-white"><%= fire.name %></h4>
-              <span class={"px-3 py-1 text-sm rounded #{threat_level_badge(fire.threat_level)}"}>
-                <%= fire.threat_level %>
-              </span>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-              <div>
-                <div class="text-xs text-gray-400">Acres Burned</div>
-                <div class="text-white font-medium">
-                  <%= format_large_number(fire.acres_burned) %>
-                </div>
-              </div>
-              <div>
-                <div class="text-xs text-gray-400">Containment</div>
-                <div class="text-white font-medium">
-                  <%= fire.containment %>%
-                </div>
-              </div>
-              <div>
-                <div class="text-xs text-gray-400">Personnel</div>
-                <div class="text-white font-medium">
-                  <%= fire.resources_deployed.personnel %>
-                </div>
-              </div>
-              <div>
-                <div class="text-xs text-gray-400">Aircraft</div>
-                <div class="text-white font-medium">
-                  <%= fire.resources_deployed.aircraft %>
-                </div>
-              </div>
-            </div>
-          </div>
-        <% end %>
-      </div>
-    </div>
-  <% end %>
-
   <!-- Space Weather with Animations -->
   <%= if @selected_event_type in ["all", "space"] do %>
     <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
@@ -351,6 +173,227 @@
         </div>
       </div>
       <% end %>
+    </div>
+  <% end %>
+
+  <!-- Event Summary Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-gray-400">Earthquakes (24h)</p>
+          <p class={"text-2xl font-bold #{natural_earthquake_color(length(@earthquakes))}"}>
+            <%= length(@earthquakes) %>
+          </p>
+        </div>
+        <div class="p-3 bg-red-500/20 rounded-lg">
+          <span class="text-2xl">🌍</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-gray-400">Active Hurricanes</p>
+          <p class="text-2xl font-bold text-white"><%= length(@hurricanes) %></p>
+        </div>
+        <div class="p-3 bg-blue-500/20 rounded-lg">
+          <span class="text-2xl">🌀</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-gray-400">Active Wildfires</p>
+          <p class="text-2xl font-bold text-white"><%= length(@wildfires) %></p>
+        </div>
+        <div class="p-3 bg-orange-500/20 rounded-lg">
+          <span class="text-2xl">🔥</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-gray-400">Space Weather</p>
+          <p class={"text-sm font-medium #{natural_space_weather_class(get_space_weather_severity(@space_weather))}"}>
+            <%= get_space_weather_severity(@space_weather) %>
+          </p>
+        </div>
+        <div class="p-3 bg-purple-500/20 rounded-lg">
+          <span class="text-2xl">🌌</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Earthquakes -->
+  <%= if @selected_event_type in ["all", "earthquakes"] do %>
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <h3 class="text-lg font-medium text-white mb-4">Recent Earthquakes</h3>
+      
+      <!-- Interactive 3D Earthquake Globe -->
+      <div class="mb-6">
+        <div 
+          id="earthquake-globe"
+          class="w-full h-[450px] bg-black rounded-lg border border-gray-600 overflow-hidden relative"
+          phx-hook="EarthquakeGlobe"
+          data-earthquakes={Jason.encode!(@earthquakes)}
+        >
+          <!-- Loading message -->
+          <div class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
+            <div class="text-center">
+              <div class="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+              Loading 3D earthquake visualization...
+            </div>
+          </div>
+        </div>
+        <div class="mt-2 text-xs text-gray-400 text-center">
+          <span class="inline-block mr-4">🔴 Major (7.0+)</span>
+          <span class="inline-block mr-4">🟠 Strong (6.0+)</span>
+          <span class="inline-block mr-4">🟡 Moderate (5.0+)</span>
+          <span class="inline-block">🟨 Light (4.5+)</span>
+          <span class="block mt-1">Click and drag to rotate • Live earthquake locations</span>
+        </div>
+      </div>
+      
+      <%= if length(@earthquakes) == 0 do %>
+        <div class="text-center py-4">
+          <div class="p-4 bg-green-900/20 border border-green-600 rounded-lg">
+            <span class="text-2xl mb-2 block">🌍</span>
+            <h4 class="text-lg font-medium text-green-400 mb-2">No Current Earthquakes</h4>
+            <p class="text-green-300 text-sm">No significant seismic activity detected</p>
+            <p class="text-gray-400 text-xs mt-1">Monitoring magnitude 4.5+ earthquakes from USGS</p>
+          </div>
+        </div>
+      <% else %>
+      
+      <!-- Show total count vs displayed count -->
+      <div class="mb-4 text-sm text-gray-400 text-center">
+        Showing top 5 of <%= length(@earthquakes) %> recent earthquakes • Globe shows all <%= length(@earthquakes) %>
+      </div>
+      
+      <div class="space-y-3">
+        <%= for earthquake <- Enum.take(@earthquakes, 5) do %>
+          <div class="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg">
+            <div class="flex items-center gap-4">
+              <div class={"w-12 h-12 rounded-full flex items-center justify-center #{natural_magnitude_color(earthquake.magnitude)}"}>
+                <span class="text-sm font-bold text-white">
+                  <%= format_magnitude(earthquake.magnitude) %>
+                </span>
+              </div>
+              <div>
+                <h4 class="text-sm font-semibold text-white">
+                  <%= earthquake.location %>
+                </h4>
+                <div class="flex items-center gap-4 text-xs text-gray-400">
+                  <span>Depth: <%= earthquake.depth %>km</span>
+                  <span>Felt: <%= earthquake.felt_reports %></span>
+                  <%= if earthquake.tsunami_warning do %>
+                    <span class="px-2 py-1 bg-red-500/20 text-red-400 rounded">
+                      🌊 Tsunami Warning
+                    </span>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+            <div class="text-xs text-gray-500">
+              <%= natural_format_relative_time(earthquake.time) %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <!-- Active Hurricanes -->
+  <%= if @selected_event_type in ["all", "hurricanes"] && length(@hurricanes) > 0 do %>
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <h3 class="text-lg font-medium text-white mb-4">Active Hurricanes</h3>
+      <div class="space-y-4">
+        <%= for hurricane <- @hurricanes do %>
+          <div class="p-4 bg-gray-700/50 rounded-lg">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="text-lg font-semibold text-white">
+                Hurricane <%= hurricane.name %>
+              </h4>
+              <span class={"px-3 py-1 text-sm rounded #{natural_category_badge(hurricane.category)}"}>
+                Category <%= hurricane.category %>
+              </span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <div class="text-xs text-gray-400">Wind Speed</div>
+                <div class="text-sm font-medium text-white">
+                  <%= round(hurricane.wind_speed) %> mph
+                </div>
+              </div>
+              <div>
+                <div class="text-xs text-gray-400">Pressure</div>
+                <div class="text-sm font-medium text-white">
+                  <%= round(hurricane.pressure) %> mb
+                </div>
+              </div>
+              <div>
+                <div class="text-xs text-gray-400">Movement</div>
+                <div class="text-sm font-medium text-white">
+                  <%= round(hurricane.movement.speed) %> mph
+                </div>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Active Wildfires -->
+  <%= if @selected_event_type in ["all", "wildfires"] && length(@wildfires) > 0 do %>
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <h3 class="text-lg font-medium text-white mb-4">Active Wildfires</h3>
+      <div class="space-y-3">
+        <%= for fire <- @wildfires do %>
+          <div class="p-4 bg-gray-700/50 rounded-lg">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="text-lg font-semibold text-white"><%= fire.name %></h4>
+              <span class={"px-3 py-1 text-sm rounded #{threat_level_badge(fire.threat_level)}"}>
+                <%= fire.threat_level %>
+              </span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <div class="text-xs text-gray-400">Acres Burned</div>
+                <div class="text-white font-medium">
+                  <%= format_large_number(fire.acres_burned) %>
+                </div>
+              </div>
+              <div>
+                <div class="text-xs text-gray-400">Containment</div>
+                <div class="text-white font-medium">
+                  <%= fire.containment %>%
+                </div>
+              </div>
+              <div>
+                <div class="text-xs text-gray-400">Personnel</div>
+                <div class="text-white font-medium">
+                  <%= fire.resources_deployed.personnel %>
+                </div>
+              </div>
+              <div>
+                <div class="text-xs text-gray-400">Aircraft</div>
+                <div class="text-white font-medium">
+                  <%= fire.resources_deployed.aircraft %>
+                </div>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
     </div>
   <% end %>
 </div>

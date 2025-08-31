@@ -17,6 +17,7 @@ import {ThreeJSMagnetosphere} from "./threejs_magnetosphere"
 import {SolarWindAnimation} from "./solar_wind_animation"
 import {KPIntensityBar} from "./kp_intensity_bar"
 import {SolarWindIntensityBar} from "./solar_wind_intensity_bar"
+import {EarthquakeGlobe} from "./earthquake_globe_globegl"
 
 // Make Chart.js available globally if it exists
 if (typeof Chart !== 'undefined') {
@@ -64,6 +65,9 @@ Hooks.SolarWindAnimation = SolarWindAnimation
 // Intensity Bar Hooks
 Hooks.KPIntensityBar = KPIntensityBar
 Hooks.SolarWindIntensityBar = SolarWindIntensityBar
+
+// Earthquake Globe Hook
+Hooks.EarthquakeGlobe = EarthquakeGlobe
 
 Hooks.CryptoChart = {
   mounted() {
