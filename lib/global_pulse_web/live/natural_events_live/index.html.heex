@@ -311,44 +311,75 @@
     </div>
   <% end %>
 
-  <!-- Active Hurricanes -->
-  <%= if @selected_event_type in ["all", "hurricanes"] && length(@hurricanes) > 0 do %>
+  <!-- Active Hurricanes & Tropical Storms -->
+  <%= if @selected_event_type in ["all", "hurricanes"] do %>
     <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
-      <h3 class="text-lg font-medium text-white mb-4">Active Hurricanes</h3>
+      <h3 class="text-lg font-medium text-white mb-4">🌀 Active Hurricanes & Tropical Storms</h3>
+      
+      <%= if length(@hurricanes) == 0 do %>
+        <div class="text-center py-8">
+          <div class="p-4 bg-blue-900/20 border border-blue-600 rounded-lg">
+            <span class="text-2xl mb-2 block">🌊</span>
+            <h4 class="text-lg font-medium text-blue-400 mb-2">No Active Storms</h4>
+            <p class="text-blue-300 text-sm">No tropical cyclones currently active</p>
+            <p class="text-gray-400 text-xs mt-1">Monitoring Atlantic, Eastern & Central Pacific basins via NHC</p>
+          </div>
+        </div>
+      <% else %>
+      
       <div class="space-y-4">
         <%= for hurricane <- @hurricanes do %>
-          <div class="p-4 bg-gray-700/50 rounded-lg">
+          <div class="p-4 bg-gray-700/50 rounded-lg border-l-4 border-orange-500">
             <div class="flex items-center justify-between mb-3">
-              <h4 class="text-lg font-semibold text-white">
-                Hurricane <%= hurricane.name %>
-              </h4>
-              <span class={"px-3 py-1 text-sm rounded #{natural_category_badge(hurricane.category)}"}>
-                Category <%= hurricane.category %>
-              </span>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <div class="text-xs text-gray-400">Wind Speed</div>
-                <div class="text-sm font-medium text-white">
-                  <%= round(hurricane.wind_speed) %> mph
+                <h4 class="text-lg font-semibold text-white">
+                  <%= hurricane.classification %> <%= hurricane.name %>
+                </h4>
+                <div class="text-sm text-gray-400">
+                  <%= hurricane.basin %> Basin • <%= hurricane.intensity %>
+                </div>
+              </div>
+              <%= if hurricane.category > 0 do %>
+                <span class={"px-3 py-1 text-sm rounded #{natural_category_badge(hurricane.category)}"}>
+                  Category <%= hurricane.category %>
+                </span>
+              <% else %>
+                <span class="px-3 py-1 text-sm rounded bg-yellow-500/20 text-yellow-400">
+                  Tropical Storm
+                </span>
+              <% end %>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <div class="text-xs text-gray-400">Max Wind Speed</div>
+                <div class="font-medium text-white">
+                  <%= hurricane.wind_speed %> mph
                 </div>
               </div>
               <div>
-                <div class="text-xs text-gray-400">Pressure</div>
-                <div class="text-sm font-medium text-white">
-                  <%= round(hurricane.pressure) %> mb
+                <div class="text-xs text-gray-400">Min Pressure</div>
+                <div class="font-medium text-white">
+                  <%= hurricane.pressure %> mb
                 </div>
               </div>
               <div>
                 <div class="text-xs text-gray-400">Movement</div>
-                <div class="text-sm font-medium text-white">
-                  <%= round(hurricane.movement.speed) %> mph
+                <div class="font-medium text-white">
+                  <%= hurricane.movement.speed %> mph
+                </div>
+              </div>
+              <div>
+                <div class="text-xs text-gray-400">Location</div>
+                <div class="font-medium text-white">
+                  <%= Float.round(hurricane.location.lat, 1) %>°, <%= Float.round(hurricane.location.lon, 1) %>°
                 </div>
               </div>
             </div>
           </div>
         <% end %>
       </div>
+      <% end %>
     </div>
   <% end %>
 

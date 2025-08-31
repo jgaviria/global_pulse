@@ -289,34 +289,174 @@ defmodule GlobalPulse.NaturalEventsMonitor do
   end
 
   defp fetch_hurricane_data(state) do
-    hurricanes = [
-      %{
-        id: "atl_01",
-        name: "ALPHA",
-        category: :rand.uniform(5),
-        wind_speed: 75 + :rand.uniform(100),
-        pressure: 920 + :rand.uniform(60),
-        location: %{lat: 25.0 + :rand.uniform() * 10, lon: -80.0 + :rand.uniform() * 20},
-        movement: %{speed: 10 + :rand.uniform(20), direction: :rand.uniform(360)},
-        forecast_track: generate_forecast_track(),
-        timestamp: DateTime.utc_now()
-      }
+    # Try multiple NHC endpoints for comprehensive storm data
+    endpoints = [
+      {"https://www.nhc.noaa.gov/gis/forecast/archive/al_latest.geojson", "Atlantic"},
+      {"https://www.nhc.noaa.gov/gis/forecast/archive/ep_latest.geojson", "Eastern Pacific"}
     ]
     
-    active_hurricanes = if :rand.uniform() > 0.5, do: hurricanes, else: []
-    %{state | hurricanes: active_hurricanes}
+    all_storms = endpoints
+    |> Enum.flat_map(fn {url, basin} -> fetch_storms_from_endpoint(url, basin) end)
+    |> Enum.uniq_by(&(&1.name))  # Remove duplicates
+    
+    Logger.info("🌀 Total active storms from all basins: #{length(all_storms)}")
+    
+    %{state | hurricanes: all_storms, last_update: DateTime.utc_now()}
   end
 
-  defp generate_forecast_track do
-    Enum.map(1..5, fn days ->
-      %{
-        days_ahead: days,
-        lat: 25.0 + days * 2 + :rand.uniform(),
-        lon: -80.0 + days * 3 + :rand.uniform(),
-        intensity: Enum.random(["Tropical Storm", "Category 1", "Category 2", "Category 3"])
-      }
-    end)
+  defp fetch_storms_from_endpoint(url, basin) do
+    Logger.info("🌀 NHC Hurricane API: Fetching #{basin} storms from #{url}")
+    
+    case HTTPoison.get(url, [], timeout: 10_000, recv_timeout: 10_000) do
+      {:ok, %{status_code: 200, body: body}} ->
+        Logger.info("🌀 NHC Hurricane API: Raw Response (#{byte_size(body)} bytes)")
+        
+        case Jason.decode(body) do
+          {:ok, %{"features" => features}} when is_list(features) ->
+            Logger.info("🌀 #{basin}: Successfully decoded GeoJSON with #{length(features)} features")
+            
+            # Parse current position features (not forecast tracks)
+            active_storms = features
+              |> Enum.filter(&is_current_position/1)
+              |> Enum.map(&parse_geojson_storm(&1, basin))
+              |> Enum.filter(&(&1 != nil))
+              |> Enum.uniq_by(&(&1.name))  # Remove duplicates by storm name
+            
+            Logger.info("🌀 #{basin}: Successfully parsed #{length(active_storms)} active storms")
+            
+            if length(active_storms) > 0 do
+              active_storms |> Enum.each(fn storm ->
+                Logger.info("🌀 #{basin}:   - #{storm.classification} #{storm.name} (#{storm.wind_speed} mph)")
+              end)
+            end
+            
+            active_storms
+            
+          {:error, decode_error} ->
+            Logger.error("🌀 #{basin}: JSON decode failed - #{inspect(decode_error)}")
+            []
+            
+          {:ok, _other} ->
+            Logger.warning("🌀 #{basin}: Unexpected JSON structure")
+            []
+        end
+        
+      {:ok, %{status_code: status_code}} ->
+        Logger.warning("🌀 #{basin}: HTTP #{status_code} error")
+        []
+        
+      {:error, %HTTPoison.Error{reason: reason}} ->
+        Logger.error("🌀 #{basin}: Connection error - #{reason}")
+        []
+    end
   end
+
+  defp is_current_position(feature) do
+    # Filter for current position features (not forecast tracks)
+    properties = feature["properties"] || %{}
+    # Look for current advisory positions
+    storm_type = properties["STORMTYPE"] || properties["stormType"] || ""
+    storm_name = properties["STORMNAME"] || properties["stormName"] || ""
+    
+    # Skip empty features or forecast tracks
+    storm_name != "" and storm_type != ""
+  end
+
+  defp parse_geojson_storm(feature, basin) do
+    try do
+      properties = feature["properties"] || %{}
+      geometry = feature["geometry"] || %{}
+      coordinates = geometry["coordinates"] || [0, 0]
+      
+      # Extract storm information from GeoJSON properties
+      storm_name = properties["STORMNAME"] || properties["stormName"] || "Unknown"
+      storm_type = properties["STORMTYPE"] || properties["stormType"] || "Unknown"
+      intensity = properties["INTENSITY"] || properties["intensity"] || "Unknown"
+      
+      # Parse wind speed - try multiple field names
+      max_wind = properties["MAXWIND"] || properties["maxWind"] || 
+                 properties["MAX_WIND"] || properties["WINDS"] || 0
+      
+      # Parse pressure
+      min_pressure = properties["MSLP"] || properties["minSeaLevelPres"] || 
+                     properties["PRESSURE"] || 1013
+      
+      # Parse coordinates (GeoJSON is [longitude, latitude])
+      lon = if is_list(coordinates) and length(coordinates) >= 2, do: Enum.at(coordinates, 0), else: 0.0
+      lat = if is_list(coordinates) and length(coordinates) >= 2, do: Enum.at(coordinates, 1), else: 0.0
+      
+      # Parse movement
+      movement_speed = properties["SPEED"] || properties["speed"] || 0
+      movement_dir = properties["DIRECTION"] || properties["direction"] || 0
+      
+      # Determine category based on wind speed
+      category = wind_speed_to_category(max_wind)
+      
+      # Parse advisory time
+      advisory_time = properties["ADVDATE"] || properties["advDate"] || 
+                      properties["DATETIME"] || properties["dateTime"]
+      
+      %{
+        id: "#{storm_name}_#{System.system_time(:second)}",
+        name: storm_name,
+        classification: storm_type,
+        intensity: intensity,
+        category: category,
+        wind_speed: max_wind,
+        pressure: min_pressure,
+        location: %{lat: lat, lon: lon},
+        movement: %{speed: movement_speed, direction: movement_dir},
+        basin: basin,
+        last_update: parse_storm_timestamp(advisory_time),
+        timestamp: DateTime.utc_now()
+      }
+    rescue
+      e ->
+        Logger.debug("🌀 Error parsing GeoJSON storm data: #{inspect(e)}")
+        nil
+    end
+  end
+
+  defp parse_wind_speed(wind_data) when is_map(wind_data) do
+    wind_data["mph"] || wind_data["kts"] || 0
+  end
+  defp parse_wind_speed(wind) when is_number(wind), do: wind
+  defp parse_wind_speed(_), do: 0
+
+  defp parse_pressure(pressure_data) when is_map(pressure_data) do
+    pressure_data["mb"] || pressure_data["inHg"] || 1013
+  end
+  defp parse_pressure(pressure) when is_number(pressure), do: pressure
+  defp parse_pressure(_), do: 1013
+
+  defp parse_storm_location(storm_data) do
+    lat = storm_data["lat"] || storm_data["latitude"] || 0.0
+    lon = storm_data["lon"] || storm_data["longitude"] || 0.0
+    {lat, lon}
+  end
+
+  defp parse_storm_movement(storm_data) do
+    movement_data = storm_data["movement"] || %{}
+    %{
+      speed: movement_data["speed"] || 0,
+      direction: movement_data["direction"] || 0
+    }
+  end
+
+  defp parse_storm_timestamp(datetime_str) when is_binary(datetime_str) do
+    case DateTime.from_iso8601(datetime_str) do
+      {:ok, datetime, _} -> datetime
+      _ -> DateTime.utc_now()
+    end
+  end
+  defp parse_storm_timestamp(_), do: DateTime.utc_now()
+
+  defp wind_speed_to_category(wind_speed) when wind_speed >= 157, do: 5
+  defp wind_speed_to_category(wind_speed) when wind_speed >= 130, do: 4
+  defp wind_speed_to_category(wind_speed) when wind_speed >= 111, do: 3
+  defp wind_speed_to_category(wind_speed) when wind_speed >= 96, do: 2
+  defp wind_speed_to_category(wind_speed) when wind_speed >= 74, do: 1
+  defp wind_speed_to_category(_), do: 0  # Tropical Storm or Depression
 
   defp fetch_wildfire_data(state) do
     wildfires = if :rand.uniform() > 0.6 do
