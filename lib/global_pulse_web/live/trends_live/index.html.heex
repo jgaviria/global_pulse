@@ -1,0 +1,305 @@
+<div class="container mx-auto px-6 py-8">
+  <!-- Header -->
+  <div class="flex justify-between items-center mb-8">
+    <div>
+      <h1 class="text-3xl font-bold text-white mb-2">Global Pulse Trends</h1>
+      <p class="text-gray-400">Real-time analysis of global search trends and public interest</p>
+    </div>
+    
+    <div class="flex items-center space-x-4">
+      <div class="text-sm text-gray-400">
+        Last updated: <span class="text-white"><%= format_time(@last_update) %></span>
+      </div>
+      
+      <button 
+        phx-click="refresh_trends"
+        class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors duration-200 flex items-center space-x-2"
+        disabled={@loading}
+      >
+        <%= if @loading do %>
+          <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        <% else %>
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+          </svg>
+        <% end %>
+        <span>Refresh</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <!-- Total Trends -->
+    <div class="bg-gray-800 p-6 rounded-lg">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-gray-400 text-sm">Active Trends</p>
+          <p class="text-2xl font-bold text-white"><%= @trends_summary.total_trends %></p>
+        </div>
+        <div class="bg-purple-500/20 p-3 rounded-full">
+          <svg class="h-6 w-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Average Interest -->
+    <div class="bg-gray-800 p-6 rounded-lg">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-gray-400 text-sm">Avg Interest Score</p>
+          <p class={["text-2xl font-bold", interest_score_color(@trends_summary.avg_interest_score)]}><%= @trends_summary.avg_interest_score %></p>
+        </div>
+        <div class="bg-blue-500/20 p-3 rounded-full">
+          <svg class="h-6 w-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Trend -->
+    <div class="bg-gray-800 p-6 rounded-lg">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-gray-400 text-sm">Top Trend</p>
+          <p class="text-sm font-bold text-orange-400"><%= String.slice(@trends_summary.top_trend.title, 0, 15) %><%= if String.length(@trends_summary.top_trend.title) > 15, do: "..." %></p>
+          <p class="text-xs text-gray-500">Score: <%= @trends_summary.top_trend.interest_score %></p>
+        </div>
+        <div class="bg-orange-500/20 p-3 rounded-full">
+          <svg class="h-6 w-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Keyword Categories -->
+    <div class="bg-gray-800 p-6 rounded-lg">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-gray-400 text-sm">Categories</p>
+          <div class="grid grid-cols-2 gap-1 text-xs mt-2">
+            <%= for {category, count} <- Enum.take(@trends_summary.keyword_categories, 4) do %>
+              <div class="flex items-center justify-between">
+                <span class="text-gray-300"><%= String.capitalize(to_string(category)) %></span>
+                <span class="text-white font-semibold"><%= count %></span>
+              </div>
+            <% end %>
+          </div>
+        </div>
+        <div class="bg-green-500/20 p-3 rounded-full">
+          <svg class="h-6 w-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Region Selector -->
+  <div class="mb-6">
+    <div class="flex flex-wrap gap-2">
+      <%= for %{region: region} <- @regional_trends do %>
+        <button 
+          phx-click="select_region" 
+          phx-value-region={region}
+          class={[
+            "px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 capitalize",
+            if(@selected_region == region, 
+              do: "bg-purple-600 text-white", 
+              else: "bg-gray-700 text-gray-300 hover:bg-gray-600")
+          ]}
+        >
+          <%= region %>
+        </button>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Main Content Grid -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    
+    <!-- Political Trends -->
+    <div class="lg:col-span-2">
+      <h2 class="text-xl font-semibold text-white mb-4 flex items-center">
+        <svg class="h-5 w-5 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+        </svg>
+        Political Trends
+      </h2>
+      
+      <div class="space-y-4">
+        <%= for trend <- Enum.take(@political_trends, 10) do %>
+          <div class="bg-gray-800 p-4 rounded-lg">
+            <div class="flex justify-between items-start mb-2">
+              <h3 class="font-semibold text-white"><%= Map.get(trend, :title, "Unknown Trend") %></h3>
+              <div class="flex items-center space-x-2">
+                <span class={["text-2xl", sentiment_shift_color(Map.get(trend, :sentiment_shift, :stable))]}>
+                  <%= sentiment_shift_icon(Map.get(trend, :sentiment_shift, :stable)) %>
+                </span>
+                <span class={["text-sm font-bold", interest_score_color(Map.get(trend, :interest_score, 0))]}>
+                  <%= Map.get(trend, :interest_score, 0) %>
+                </span>
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs text-gray-400">
+              <div>
+                <span class="text-gray-500">24h Change:</span>
+                <span class={["font-semibold ml-1", sentiment_shift_color(Map.get(trend, :sentiment_shift, :stable))]}>
+                  <%= format_change(Map.get(trend, :change_24h, 0)) %>
+                </span>
+              </div>
+              <div>
+                <span class="text-gray-500">Volume:</span>
+                <span class="text-white font-semibold ml-1"><%= Map.get(trend, :search_volume, "N/A") %></span>
+              </div>
+              <div>
+                <span class="text-gray-500">Category:</span>
+                <span class={["px-2 py-1 rounded text-xs font-medium ml-1", category_color(Map.get(trend, :category, :general))]}>
+                  <%= String.capitalize(to_string(Map.get(trend, :category, :general))) %>
+                </span>
+              </div>
+            </div>
+
+            <%= if Map.has_key?(trend, :related_queries) && length(trend.related_queries) > 0 do %>
+              <div class="mt-3">
+                <span class="text-gray-500 text-xs">Related:</span>
+                <div class="flex flex-wrap gap-1 mt-1">
+                  <%= for query <- Enum.take(trend.related_queries, 3) do %>
+                    <span class="bg-gray-700 text-gray-300 px-2 py-1 rounded text-xs">
+                      <%= query %>
+                    </span>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="space-y-6">
+      
+      <!-- Trending Keywords -->
+      <div>
+        <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
+          <svg class="h-5 w-5 text-yellow-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+          </svg>
+          Trending Keywords
+        </h3>
+        
+        <div class="space-y-2">
+          <%= for keyword <- Enum.take(@trending_keywords, 15) do %>
+            <div class="flex items-center justify-between bg-gray-800 p-3 rounded-lg">
+              <div class="flex-grow">
+                <div class="flex items-center space-x-2">
+                  <span class="text-white text-sm font-medium"><%= keyword.keyword %></span>
+                  <span class={["px-2 py-1 rounded text-xs font-medium", category_color(keyword.category)]}>
+                    <%= String.capitalize(to_string(keyword.category)) %>
+                  </span>
+                </div>
+                <div class="text-xs text-gray-400 mt-1">
+                  Frequency: <%= keyword.frequency %>
+                </div>
+              </div>
+              <div class="text-lg">
+                <%= trend_direction_icon(keyword.trend_direction) %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <!-- Regional Insights -->
+      <%= if @selected_region != "global" do %>
+        <div>
+          <h3 class="text-lg font-semibold text-white mb-4 capitalize flex items-center">
+            <svg class="h-5 w-5 text-blue-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <%= @selected_region %> Trends
+          </h3>
+          
+          <% selected_regional_data = Enum.find(@regional_trends, &(&1.region == @selected_region)) %>
+          <%= if selected_regional_data do %>
+            <div class="bg-gray-800 p-4 rounded-lg mb-4">
+              <div class="text-center">
+                <p class="text-2xl font-bold text-blue-400"><%= selected_regional_data.total_volume %></p>
+                <p class="text-gray-400 text-sm">Total Interest Volume</p>
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              <%= for trend <- Enum.take(selected_regional_data.trends, 5) do %>
+                <div class="bg-gray-800 p-3 rounded-lg">
+                  <h4 class="font-medium text-white text-sm"><%= Map.get(trend, :title, "Unknown Trend") %></h4>
+                  <div class="flex items-center justify-between mt-1">
+                    <span class="text-xs text-gray-400">Interest: <%= Map.get(trend, :interest_score, 0) %></span>
+                    <span class={["px-2 py-1 rounded text-xs", category_color(Map.get(trend, :category, :general))]}>
+                      <%= String.capitalize(to_string(Map.get(trend, :category, :general))) %>
+                    </span>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+
+    </div>
+  </div>
+
+  <!-- Global Trends Section -->
+  <%= if @selected_region == "global" do %>
+    <div class="mt-8">
+      <h2 class="text-xl font-semibold text-white mb-4 flex items-center">
+        <svg class="h-5 w-5 text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        Global Interest Trends
+      </h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <%= for trend <- Enum.take(@global_trends, 8) do %>
+          <div class="bg-gray-800 p-4 rounded-lg">
+            <div class="flex justify-between items-start mb-3">
+              <h3 class="font-semibold text-white"><%= Map.get(trend, :title, "Unknown Trend") %></h3>
+              <span class={["text-lg font-bold", interest_score_color(Map.get(trend, :interest_score, 0))]}>
+                <%= Map.get(trend, :interest_score, 0) %>
+              </span>
+            </div>
+            
+            <div class="space-y-2 text-xs">
+              <div class="flex justify-between">
+                <span class="text-gray-500">24h Change:</span>
+                <span class={["font-semibold", sentiment_shift_color(Map.get(trend, :sentiment_shift, :stable))]}>
+                  <%= format_change(Map.get(trend, :change_24h, 0)) %>
+                </span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-500">Search Volume:</span>
+                <span class="text-white"><%= Map.get(trend, :search_volume, "N/A") %></span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-500">Sentiment:</span>
+                <span class={["capitalize", sentiment_shift_color(Map.get(trend, :sentiment_shift, :stable))]}>
+                  <%= Map.get(trend, :sentiment_shift, :stable) %>
+                </span>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+</div>

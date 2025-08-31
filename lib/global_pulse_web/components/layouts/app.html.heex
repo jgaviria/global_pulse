@@ -1,0 +1,100 @@
+<div class="min-h-screen bg-gray-900">
+  <nav class="bg-gray-800 border-b border-gray-700">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="flex h-16 items-center justify-between">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
+              Global Pulse
+            </h1>
+          </div>
+          <div class="hidden md:block">
+            <div class="ml-10 flex items-baseline space-x-4">
+              <.link
+                navigate={~p"/"}
+                class={"#{if @active_tab == :dashboard, do: "bg-gray-900 text-white", else: "text-gray-300 hover:bg-gray-700 hover:text-white"} rounded-md px-3 py-2 text-sm font-medium"}
+              >
+                Overview
+              </.link>
+              <.link
+                navigate={~p"/financial"}
+                class={"#{if @active_tab == :financial, do: "bg-gray-900 text-white", else: "text-gray-300 hover:bg-gray-700 hover:text-white"} rounded-md px-3 py-2 text-sm font-medium"}
+              >
+                Financial
+              </.link>
+              <.link
+                navigate={~p"/political"}
+                class={"#{if @active_tab == :political, do: "bg-gray-900 text-white", else: "text-gray-300 hover:bg-gray-700 hover:text-white"} rounded-md px-3 py-2 text-sm font-medium"}
+              >
+                Political
+              </.link>
+              <.link
+                navigate={~p"/news"}
+                class={"#{if @active_tab == :news, do: "bg-gray-900 text-white", else: "text-gray-300 hover:bg-gray-700 hover:text-white"} rounded-md px-3 py-2 text-sm font-medium"}
+              >
+                <span class="relative">
+                  News Feed
+                  <%= if assigns[:breaking_news_count] && @breaking_news_count > 0 do %>
+                    <span class="absolute -top-1 -right-2 flex h-4 w-4">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-4 w-4 bg-red-500 text-xs text-white items-center justify-center">
+                        <%= @breaking_news_count %>
+                      </span>
+                    </span>
+                  <% end %>
+                </span>
+              </.link>
+              <.link
+                navigate={~p"/trends"}
+                class={"#{if @active_tab == :trends, do: "bg-gray-900 text-white", else: "text-gray-300 hover:bg-gray-700 hover:text-white"} rounded-md px-3 py-2 text-sm font-medium"}
+              >
+                Trends
+              </.link>
+              <.link
+                navigate={~p"/natural"}
+                class={"#{if @active_tab == :natural, do: "bg-gray-900 text-white", else: "text-gray-300 hover:bg-gray-700 hover:text-white"} rounded-md px-3 py-2 text-sm font-medium"}
+              >
+                Natural Events
+              </.link>
+              <.link
+                navigate={~p"/anomalies"}
+                class={"#{if @active_tab == :anomalies, do: "bg-gray-900 text-white", else: "text-gray-300 hover:bg-gray-700 hover:text-white"} rounded-md px-3 py-2 text-sm font-medium"}
+              >
+                <span class="relative">
+                  Anomalies
+                  <%= if @anomaly_count > 0 do %>
+                    <span class="absolute -top-1 -right-2 flex h-5 w-5">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-5 w-5 bg-red-500 text-xs text-white items-center justify-center">
+                        <%= @anomaly_count %>
+                      </span>
+                    </span>
+                  <% end %>
+                </span>
+              </.link>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="text-sm text-gray-400">
+            Last Update: <span class="text-green-400"><%= format_time(@last_update) %></span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="relative flex h-3 w-3">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+            </span>
+            <span class="text-sm text-gray-300">Live</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+      <.flash_group flash={@flash} />
+      <%= @inner_content %>
+    </div>
+  </main>
+</div>

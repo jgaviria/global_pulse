@@ -1,0 +1,233 @@
+<div class="space-y-6">
+  <!-- Market Overview Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700" phx-hook="FearGreedChart" id="fear-greed-chart">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-sm text-gray-400">Fear & Greed Index</span>
+        <div class="flex items-center space-x-2">
+          <div class="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+          <span class="text-xs text-yellow-400 font-medium">LIVE</span>
+        </div>
+      </div>
+      <div class="h-24 relative bg-gray-900/50 rounded border border-gray-700 mb-2">
+        <canvas id="fear-greed-canvas" class="absolute inset-0 w-full h-full"></canvas>
+      </div>
+      <div class="text-center">
+        <div class="text-lg font-bold text-white mb-1" data-fear-greed-value>
+          <%= @market_indicators.fear_greed_index %>
+        </div>
+        <div class="text-xs text-yellow-400" data-fear-greed-change>
+          +1.2
+        </div>
+      </div>
+    </div>
+    
+    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700" phx-hook="MarketCapChart" id="market-cap-chart">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-sm text-gray-400">Global Market Cap</span>
+        <div class="flex items-center space-x-2">
+          <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+          <span class="text-xs text-green-400 font-medium">LIVE</span>
+        </div>
+      </div>
+      <div class="h-24 relative bg-gray-900/50 rounded border border-gray-700 mb-2">
+        <canvas id="market-cap-canvas" class="absolute inset-0 w-full h-full"></canvas>
+      </div>
+      <div class="text-center">
+        <div class="text-lg font-bold text-white mb-1" data-market-cap-value>
+          $45.20T
+        </div>
+        <div class="text-xs text-green-400" data-market-cap-change>
+          +0.125T (+0.28%)
+        </div>
+      </div>
+    </div>
+    
+    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700" phx-hook="VolatilityChart" id="volatility-chart">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-sm text-gray-400">Volatility Index</span>
+        <div class="flex items-center space-x-2">
+          <div class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+          <span class="text-xs text-red-400 font-medium">LIVE</span>
+        </div>
+      </div>
+      <div class="h-24 relative bg-gray-900/50 rounded border border-gray-700 mb-2">
+        <canvas id="volatility-canvas" class="absolute inset-0 w-full h-full"></canvas>
+      </div>
+      <div class="text-center">
+        <div class="text-lg font-bold text-white mb-1" data-volatility-value>
+          <%= round(@market_indicators.volatility_index) %>
+        </div>
+        <div class="text-xs text-red-400" data-volatility-change>
+          +0.8
+        </div>
+      </div>
+    </div>
+    
+    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-sm text-gray-400">Active Trades</span>
+      </div>
+      <div class="text-2xl font-bold text-white">
+        <%= Enum.count(@crypto) + Enum.count(@stocks) %>
+      </div>
+      <div class="text-xs text-gray-500 mt-1">Monitored Assets</div>
+    </div>
+  </div>
+
+  <!-- Time Range Selector -->
+  <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+    <div class="flex items-center justify-between">
+      <h3 class="text-lg font-medium text-white">Market Performance</h3>
+      <div class="flex gap-2">
+        <%= for range <- ["1H", "1D", "1W", "1M", "1Y"] do %>
+          <button
+            phx-click="change-time-range"
+            phx-value-range={range}
+            class={"px-3 py-1 text-sm rounded #{if @time_range == range, do: "bg-blue-600 text-white", else: "bg-gray-700 text-gray-300 hover:bg-gray-600"}"}
+          >
+            <%= range %>
+          </button>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Charts Grid -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Crypto Prices Chart -->
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <h3 class="text-lg font-medium text-white mb-4">Cryptocurrency Markets</h3>
+      <div class="h-64" id="crypto-chart" phx-hook="CryptoChart" data-prices={Jason.encode!(@chart_data.crypto_prices)}>
+        <canvas id="crypto-canvas"></canvas>
+      </div>
+      <div class="mt-4 space-y-2">
+        <%= for crypto <- Enum.take(@chart_data.crypto_prices, 5) do %>
+          <div class="flex items-center justify-between p-2 bg-gray-700/50 rounded">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
+                <span class="text-xs font-bold text-blue-400"><%= String.slice(crypto.name, 0..2) %></span>
+              </div>
+              <span class="text-sm text-white font-medium"><%= crypto.name %></span>
+            </div>
+            <div class="text-right">
+              <div class="text-sm text-white font-medium">$<%= format_number(crypto.price) %></div>
+              <div class={"text-xs #{if crypto.change_percent >= 0, do: "text-green-400", else: "text-red-400"}"}>
+                <%= if crypto.change_percent >= 0, do: "+", else: "" %><%= format_change(crypto.change_percent) %>%
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Stock Indices Chart -->
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <h3 class="text-lg font-medium text-white mb-4">Stock Indices</h3>
+      <div class="h-64" id="stocks-chart" phx-hook="StocksChart" data-stocks={Jason.encode!(@chart_data.stock_indices)}>
+        <canvas id="stocks-canvas"></canvas>
+      </div>
+      <div class="mt-4 space-y-2">
+        <%= for stock <- Enum.take(@chart_data.stock_indices, 5) do %>
+          <div class="flex items-center justify-between p-2 bg-gray-700/50 rounded">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center">
+                <span class="text-xs font-bold text-green-400"><%= String.slice(stock.name, 0..2) %></span>
+              </div>
+              <span class="text-sm text-white font-medium"><%= stock.name %></span>
+            </div>
+            <div class="text-right">
+              <div class="text-sm text-white font-medium">$<%= format_price(stock.price) %></div>
+              <div class={"text-xs #{if stock.change >= 0, do: "text-green-400", else: "text-red-400"}"}>
+                <%= if stock.change >= 0, do: "+", else: "" %><%= format_change(stock.change) %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Forex and Commodities -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Forex Rates -->
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <h3 class="text-lg font-medium text-white mb-4">Foreign Exchange</h3>
+      <div class="space-y-3">
+        <%= for forex <- @chart_data.forex_rates do %>
+          <div class="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                <span class="text-xs font-bold text-purple-400">FX</span>
+              </div>
+              <div>
+                <div class="text-sm text-white font-medium"><%= forex.pair %></div>
+                <div class="text-xs text-gray-400">Currency Pair</div>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-sm text-white font-medium"><%= format_price(forex.rate) %></div>
+              <div class={"text-xs #{if forex.change >= 0, do: "text-green-400", else: "text-red-400"}"}>
+                <%= if forex.change >= 0, do: "↑", else: "↓" %> <%= abs(format_change(forex.change * 100)) %>%
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Commodities -->
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <h3 class="text-lg font-medium text-white mb-4">Commodities</h3>
+      <div class="space-y-3">
+        <%= for commodity <- @chart_data.commodity_prices do %>
+          <div class="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg">
+            <div class="flex items-center gap-3">
+              <div class={"w-10 h-10 rounded-lg flex items-center justify-center #{commodity_color(commodity.name)}"}>
+                <span class="text-xs font-bold text-white"><%= String.slice(commodity.name, 0..2) %></span>
+              </div>
+              <div>
+                <div class="text-sm text-white font-medium"><%= commodity.name %></div>
+                <div class="text-xs text-gray-400">Commodity</div>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-sm text-white font-medium">$<%= format_change(commodity.price) %></div>
+              <div class={"text-xs #{if commodity.change >= 0, do: "text-green-400", else: "text-red-400"}"}>
+                <%= if commodity.change >= 0, do: "↑", else: "↓" %> <%= abs(format_change(commodity.change * 100)) %>%
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Volume Analysis -->
+  <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+    <h3 class="text-lg font-medium text-white mb-4">Trading Volume Analysis</h3>
+    <div class="h-64" id="volume-chart" phx-hook="VolumeChart" data-volume={Jason.encode!(@chart_data.volume_data)}>
+      <canvas id="volume-canvas"></canvas>
+    </div>
+  </div>
+
+  <!-- Correlation Matrix -->
+  <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+    <h3 class="text-lg font-medium text-white mb-4">Asset Correlations</h3>
+    <div class="grid grid-cols-3 gap-4">
+      <%= for {pair, correlation} <- @market_indicators.correlation_matrix do %>
+        <div class="bg-gray-700/50 rounded-lg p-4">
+          <div class="text-sm text-gray-400 mb-1"><%= pair %></div>
+          <div class={"text-xl font-bold #{correlation_color(correlation)}"}>
+            <%= format_change(correlation) %>
+          </div>
+          <div class="mt-2 w-full bg-gray-600 rounded-full h-1">
+            <div class={"h-1 rounded-full #{correlation_bar_color(correlation)}"} 
+                 style={"width: #{abs(correlation) * 100}%"}>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

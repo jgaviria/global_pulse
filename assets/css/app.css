@@ -1,0 +1,448 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+@import "./magnetosphere.css";
+
+/* Custom animations */
+@keyframes pulse-soft {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .8;
+  }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Custom scrollbars for webkit browsers */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #374151;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #6b7280;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Chart container styling */
+.chart-container {
+  position: relative;
+  height: 250px;
+  width: 100%;
+}
+
+/* Custom gradient backgrounds */
+.gradient-bg-financial {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+}
+
+.gradient-bg-political {
+  background: linear-gradient(135deg, #312e81 0%, #1e1b4b 100%);
+}
+
+.gradient-bg-natural {
+  background: linear-gradient(135deg, #065f46 0%, #064e3b 100%);
+}
+
+.bg-gradient-radial {
+  background: radial-gradient(circle, var(--tw-gradient-stops));
+}
+
+/* Glow effects for critical alerts */
+.glow-red {
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+}
+
+.glow-yellow {
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+}
+
+.glow-green {
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+}
+
+/* Data visualization enhancements */
+.metric-card {
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+}
+
+.metric-card:hover {
+  border-color: #3b82f6;
+  transform: translateY(-2px);
+}
+
+/* Real-time indicator */
+.live-indicator {
+  position: relative;
+}
+
+.live-indicator::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #10b981, #3b82f6, #8b5cf6, #ef4444);
+  border-radius: inherit;
+  z-index: -1;
+  animation: rotate 2s linear infinite;
+}
+
+@keyframes rotate {
+  0% {
+    filter: hue-rotate(0deg);
+  }
+  100% {
+    filter: hue-rotate(360deg);
+  }
+}
+
+/* Status indicators */
+.status-online {
+  color: #10b981;
+  text-shadow: 0 0 8px #10b981;
+}
+
+.status-warning {
+  color: #f59e0b;
+  text-shadow: 0 0 8px #f59e0b;
+}
+
+.status-critical {
+  color: #ef4444;
+  text-shadow: 0 0 8px #ef4444;
+}
+
+/* Enhanced hover states */
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Live feed animations */
+@keyframes fade-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-right {
+  0% {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes data-stream {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 100% 100%;
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out forwards;
+  opacity: 0;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.5s ease-out forwards;
+  opacity: 0;
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s ease-in-out infinite;
+}
+
+.animate-data-stream {
+  background: linear-gradient(-45deg, transparent 40%, rgba(59, 130, 246, 0.1) 50%, transparent 60%);
+  background-size: 200% 200%;
+  animation: data-stream 2s linear infinite;
+}
+
+/* Live indicator styling */
+.live-dot {
+  position: relative;
+}
+
+.live-dot::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.3);
+  transform: translate(-50%, -50%);
+  animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes ping {
+  75%, 100% {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 0;
+  }
+}
+
+/* Trending effect */
+.trending-glow {
+  box-shadow: 0 0 20px rgba(251, 146, 60, 0.4);
+  border: 1px solid rgba(251, 146, 60, 0.3);
+}
+
+/* Text effects */
+.text-glow {
+  text-shadow: 0 0 10px currentColor;
+}
+
+/* Scrollbar styling */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #6b7280 #374151;
+}
+
+.scrollbar-thumb-gray-600 {
+  --tw-scrollbar-thumb: #6b7280;
+}
+
+/* Line clamp utility */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;  
+  overflow: hidden;
+}
+
+/* Space Weather Animations */
+@keyframes fly-fast {
+  0% {
+    left: 10%;
+    opacity: 1;
+  }
+  100% {
+    left: 90%;
+    opacity: 0;
+  }
+}
+
+@keyframes fly-medium {
+  0% {
+    left: 10%;
+    opacity: 1;
+  }
+  100% {
+    left: 85%;
+    opacity: 0;
+  }
+}
+
+@keyframes fly-slow {
+  0% {
+    left: 10%;
+    opacity: 1;
+  }
+  100% {
+    left: 80%;
+    opacity: 0;
+  }
+}
+
+@keyframes fly-very-slow {
+  0% {
+    left: 10%;
+    opacity: 1;
+  }
+  100% {
+    left: 75%;
+    opacity: 0;
+  }
+}
+
+@keyframes fly-density {
+  0% {
+    left: 15%;
+    opacity: 1;
+  }
+  100% {
+    left: 70%;
+    opacity: 0;
+  }
+}
+
+/* Aurora animations */
+@keyframes aurora-dance {
+  0%, 100% {
+    transform: translateX(-50%) skewX(0deg);
+  }
+  25% {
+    transform: translateX(-50%) skewX(2deg);
+  }
+  50% {
+    transform: translateX(-50%) skewX(-1deg);
+  }
+  75% {
+    transform: translateX(-50%) skewX(1deg);
+  }
+}
+
+@keyframes aurora-ripple {
+  0% {
+    transform: translateX(-50%) scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateX(-50%) scale(1.1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateX(-50%) scale(1);
+    opacity: 0.6;
+  }
+}
+
+@keyframes magnetic-flux {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scaleY(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scaleY(1.2);
+  }
+}
+
+/* Solar activity animations */
+@keyframes solar-flare {
+  0% {
+    box-shadow: 0 0 5px rgba(251, 146, 60, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(251, 146, 60, 0.8);
+  }
+  100% {
+    box-shadow: 0 0 5px rgba(251, 146, 60, 0.3);
+  }
+}
+
+@keyframes plasma-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Enhanced particle effects */
+.aurora-layer-1 {
+  animation: aurora-dance 4s ease-in-out infinite;
+}
+
+.aurora-layer-2 {
+  animation: aurora-ripple 6s ease-in-out infinite;
+}
+
+.aurora-layer-3 {
+  animation: aurora-dance 8s ease-in-out infinite reverse;
+}
+
+.magnetic-field-line {
+  animation: magnetic-flux 3s ease-in-out infinite;
+}
+
+.solar-activity {
+  animation: solar-flare 2s ease-in-out infinite;
+}
+
+.plasma-stream {
+  background: linear-gradient(-45deg, transparent, rgba(251, 146, 60, 0.3), transparent);
+  background-size: 200% 200%;
+  animation: plasma-flow 3s ease-in-out infinite;
+}
+
+/* Space weather intensity classes */
+.geomagnetic-quiet {
+  filter: grayscale(0.5) brightness(0.8);
+}
+
+.geomagnetic-active {
+  filter: brightness(1.1);
+}
+
+.geomagnetic-storm {
+  filter: brightness(1.3) saturate(1.2);
+  animation: aurora-dance 2s ease-in-out infinite;
+}
+
+.geomagnetic-severe {
+  filter: brightness(1.5) saturate(1.5);
+  animation: aurora-ripple 1.5s ease-in-out infinite;
+}
+
+.geomagnetic-extreme {
+  filter: brightness(2) saturate(2);
+  animation: solar-flare 1s ease-in-out infinite;
+}
+
+/* Solar wind speed effects */
+.wind-calm {
+  animation-duration: 5s;
+  filter: brightness(0.8);
+}
+
+.wind-normal {
+  animation-duration: 3s;
+}
+
+.wind-fast {
+  animation-duration: 1.5s;
+  filter: brightness(1.2);
+}
+
+.wind-extreme {
+  animation-duration: 0.8s;
+  filter: brightness(1.5) saturate(1.3);
+}

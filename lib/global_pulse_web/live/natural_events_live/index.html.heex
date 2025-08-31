@@ -1,0 +1,356 @@
+<div class="space-y-6">
+  <!-- Event Type Filter -->
+  <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+    <div class="flex items-center gap-4">
+      <span class="text-sm text-gray-400">Filter by type:</span>
+      <%= for type <- ["all", "earthquakes", "weather", "hurricanes", "space"] do %>
+        <button
+          phx-click="filter-events"
+          phx-value-type={type}
+          class={"px-3 py-1 text-sm rounded #{if @selected_event_type == type, do: "bg-blue-600 text-white", else: "bg-gray-700 text-gray-300 hover:bg-gray-600"}"}
+        >
+          <%= String.capitalize(type) %>
+        </button>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Event Summary Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-gray-400">Earthquakes (24h)</p>
+          <p class={"text-2xl font-bold #{natural_earthquake_color(length(@earthquakes))}"}>
+            <%= length(@earthquakes) %>
+          </p>
+        </div>
+        <div class="p-3 bg-red-500/20 rounded-lg">
+          <span class="text-2xl">🌍</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-gray-400">Active Hurricanes</p>
+          <p class="text-2xl font-bold text-white"><%= length(@hurricanes) %></p>
+        </div>
+        <div class="p-3 bg-blue-500/20 rounded-lg">
+          <span class="text-2xl">🌀</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-gray-400">Active Wildfires</p>
+          <p class="text-2xl font-bold text-white"><%= length(@wildfires) %></p>
+        </div>
+        <div class="p-3 bg-orange-500/20 rounded-lg">
+          <span class="text-2xl">🔥</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-gray-400">Space Weather</p>
+          <p class={"text-sm font-medium #{natural_space_weather_class(get_space_weather_severity(@space_weather))}"}>
+            <%= get_space_weather_severity(@space_weather) %>
+          </p>
+        </div>
+        <div class="p-3 bg-purple-500/20 rounded-lg">
+          <span class="text-2xl">🌌</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Earthquakes -->
+  <%= if @selected_event_type in ["all", "earthquakes"] && length(@earthquakes) > 0 do %>
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <h3 class="text-lg font-medium text-white mb-4">Recent Earthquakes</h3>
+      <div class="space-y-3">
+        <%= for earthquake <- Enum.take(@earthquakes, 5) do %>
+          <div class="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg">
+            <div class="flex items-center gap-4">
+              <div class={"w-12 h-12 rounded-full flex items-center justify-center #{natural_magnitude_color(earthquake.magnitude)}"}>
+                <span class="text-sm font-bold text-white">
+                  <%= format_magnitude(earthquake.magnitude) %>
+                </span>
+              </div>
+              <div>
+                <h4 class="text-sm font-semibold text-white">
+                  <%= earthquake.location %>
+                </h4>
+                <div class="flex items-center gap-4 text-xs text-gray-400">
+                  <span>Depth: <%= earthquake.depth %>km</span>
+                  <span>Felt: <%= earthquake.felt_reports %></span>
+                  <%= if earthquake.tsunami_warning do %>
+                    <span class="px-2 py-1 bg-red-500/20 text-red-400 rounded">
+                      🌊 Tsunami Warning
+                    </span>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+            <div class="text-xs text-gray-500">
+              <%= natural_format_relative_time(earthquake.time) %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Active Hurricanes -->
+  <%= if @selected_event_type in ["all", "hurricanes"] && length(@hurricanes) > 0 do %>
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <h3 class="text-lg font-medium text-white mb-4">Active Hurricanes</h3>
+      <div class="space-y-4">
+        <%= for hurricane <- @hurricanes do %>
+          <div class="p-4 bg-gray-700/50 rounded-lg">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="text-lg font-semibold text-white">
+                Hurricane <%= hurricane.name %>
+              </h4>
+              <span class={"px-3 py-1 text-sm rounded #{natural_category_badge(hurricane.category)}"}>
+                Category <%= hurricane.category %>
+              </span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <div class="text-xs text-gray-400">Wind Speed</div>
+                <div class="text-sm font-medium text-white">
+                  <%= round(hurricane.wind_speed) %> mph
+                </div>
+              </div>
+              <div>
+                <div class="text-xs text-gray-400">Pressure</div>
+                <div class="text-sm font-medium text-white">
+                  <%= round(hurricane.pressure) %> mb
+                </div>
+              </div>
+              <div>
+                <div class="text-xs text-gray-400">Movement</div>
+                <div class="text-sm font-medium text-white">
+                  <%= round(hurricane.movement.speed) %> mph
+                </div>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Active Wildfires -->
+  <%= if @selected_event_type in ["all", "wildfires"] && length(@wildfires) > 0 do %>
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <h3 class="text-lg font-medium text-white mb-4">Active Wildfires</h3>
+      <div class="space-y-3">
+        <%= for fire <- @wildfires do %>
+          <div class="p-4 bg-gray-700/50 rounded-lg">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="text-lg font-semibold text-white"><%= fire.name %></h4>
+              <span class={"px-3 py-1 text-sm rounded #{threat_level_badge(fire.threat_level)}"}>
+                <%= fire.threat_level %>
+              </span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <div class="text-xs text-gray-400">Acres Burned</div>
+                <div class="text-white font-medium">
+                  <%= format_large_number(fire.acres_burned) %>
+                </div>
+              </div>
+              <div>
+                <div class="text-xs text-gray-400">Containment</div>
+                <div class="text-white font-medium">
+                  <%= fire.containment %>%
+                </div>
+              </div>
+              <div>
+                <div class="text-xs text-gray-400">Personnel</div>
+                <div class="text-white font-medium">
+                  <%= fire.resources_deployed.personnel %>
+                </div>
+              </div>
+              <div>
+                <div class="text-xs text-gray-400">Aircraft</div>
+                <div class="text-white font-medium">
+                  <%= fire.resources_deployed.aircraft %>
+                </div>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Space Weather with Animations -->
+  <%= if @selected_event_type in ["all", "space"] do %>
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <h3 class="text-lg font-medium text-white mb-4">🌌 Space Weather Conditions</h3>
+      
+      <%= if not space_weather_has_data?(@space_weather) do %>
+        <div class="text-center py-8">
+          <div class="p-4 bg-red-900/20 border border-red-600 rounded-lg">
+            <span class="text-2xl mb-2 block">📡</span>
+            <h4 class="text-lg font-medium text-red-400 mb-2">No Data Stream</h4>
+            <p class="text-red-300 text-sm">Unable to connect to NOAA Space Weather APIs</p>
+            <p class="text-gray-400 text-xs mt-1">Check logs for detailed API status</p>
+          </div>
+        </div>
+      <% else %>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        <!-- Geomagnetic Activity with Advanced Animation -->
+        <div class="p-6 bg-gray-700/50 rounded-lg relative overflow-hidden">
+          <h4 class="text-md font-semibold text-white mb-4 flex items-center">
+            🧲 Geomagnetic Activity
+          </h4>
+          
+          <!-- Advanced Van Allen Radiation Belt Visualization -->
+          <div 
+            id="magnetosphere-animation"
+            class="magnetosphere-container relative h-72 mb-4 bg-black rounded-lg overflow-hidden border border-gray-700"
+            phx-hook="MagnetosphereAnimation"
+            data-kp-index={get_space_weather_kp(@space_weather)}
+            data-solar-wind-speed={get_solar_wind_speed(@space_weather)}
+            data-severity={get_space_weather_severity(@space_weather)}
+          >
+            <!-- JavaScript will populate this container with Van Allen belt visualization -->
+          </div>
+          
+          <!-- Geomagnetic Data with Intensity Bar -->
+          <div class="flex gap-4">
+            <div class="flex-1 space-y-2">
+              <div class="flex items-center gap-2">
+                <span class="text-sm text-gray-400">Severity:</span>
+                <span class={[
+                  "text-sm font-bold px-2 py-1 rounded",
+                  natural_space_weather_class(get_space_weather_severity(@space_weather)),
+                  severity_background_class(get_space_weather_severity(@space_weather))
+                ]}>
+                  <%= get_space_weather_severity(@space_weather) %>
+                </span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-sm text-gray-400">KP Index:</span>
+                <span class={[
+                  "text-sm font-mono font-bold",
+                  kp_color_class(get_space_weather_kp(@space_weather))
+                ]}>
+                  <%= format_decimal(get_space_weather_kp(@space_weather)) %>
+                </span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-sm text-gray-400">Aurora Latitude:</span>
+                <span class="text-sm text-green-400 font-mono">
+                  <%= round(get_aurora_visibility(@space_weather)) %>°
+                </span>
+              </div>
+            </div>
+            
+            <!-- KP Index Intensity Bar -->
+            <div class="w-12">
+              <div 
+                id="kp-intensity-bar"
+                class="kp-bar-container h-24 relative"
+                phx-hook="KPIntensityBar"
+                data-kp-index={get_space_weather_kp(@space_weather)}
+              >
+                <!-- JavaScript will populate this -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Solar Wind with Flow Animation -->
+        <div class="p-6 bg-gray-700/50 rounded-lg relative overflow-hidden">
+          <h4 class="text-md font-semibold text-white mb-4 flex items-center">
+            ☀️ Solar Wind Stream
+          </h4>
+          
+          <!-- Advanced Solar Wind Stream Visualization -->
+          <div 
+            id="solar-wind-animation"
+            class="solar-wind-container relative h-72 mb-4 bg-black rounded-lg overflow-hidden border border-gray-700"
+            phx-hook="SolarWindAnimation"
+            data-solar-wind-speed={get_solar_wind_speed(@space_weather)}
+            data-solar-wind-density={get_solar_wind_density(@space_weather)}
+            data-solar-wind-temperature={get_solar_wind_temperature(@space_weather)}
+          >
+            <!-- JavaScript will populate this container with solar wind stream visualization -->
+          </div>
+          
+          <!-- Solar Wind Data with Intensity Bar -->
+          <div class="flex gap-4">
+            <div class="flex-1 space-y-2">
+              <div class="flex items-center gap-2">
+                <span class="text-sm text-gray-400">Speed:</span>
+                <span class={[
+                  "text-sm font-mono font-bold",
+                  wind_speed_color_class(get_solar_wind_speed(@space_weather))
+                ]}>
+                  <%= round(get_solar_wind_speed(@space_weather)) %> km/s
+                </span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-sm text-gray-400">Density:</span>
+                <span class={[
+                  "text-sm font-mono font-bold",
+                  density_color_class(get_solar_wind_density(@space_weather))
+                ]}>
+                  <%= format_decimal(get_solar_wind_density(@space_weather)) %> /cm³
+                </span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-sm text-gray-400">Temperature:</span>
+                <span class={[
+                  "text-sm font-mono font-bold",
+                  temperature_color_class(get_solar_wind_temperature(@space_weather))
+                ]}>
+                  <%= format_temperature(get_solar_wind_temperature(@space_weather)) %>K
+                </span>
+              </div>
+            </div>
+            
+            <!-- Solar Wind Speed Intensity Bar -->
+            <div class="w-12">
+              <div 
+                id="solar-wind-intensity-bar"
+                class="speed-bar-container h-24 relative"
+                phx-hook="SolarWindIntensityBar"
+                data-solar-wind-speed={get_solar_wind_speed(@space_weather)}
+              >
+                <!-- JavaScript will populate this -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Real-time Update Indicator & Debug Info -->
+      <div class="mt-4 space-y-2">
+        <div class="flex items-center justify-center text-xs text-gray-500">
+          <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2"></div>
+          Live data • Updates every 3 minutes
+        </div>
+        <!-- Debug: Show current values -->
+        <div class="text-center text-xs text-gray-600 font-mono">
+          KP: <%= get_space_weather_kp(@space_weather) %> | 
+          Speed: <%= get_solar_wind_speed(@space_weather) %> km/s |
+          Severity: <%= get_space_weather_severity(@space_weather) %>
+        </div>
+      </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

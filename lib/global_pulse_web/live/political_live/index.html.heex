@@ -1,0 +1,320 @@
+<div class="space-y-6" phx-hook="PoliticalLive" id="political-live-container">
+  <!-- Live Sentiment Charts - Three Separate Cards -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <!-- Overall Sentiment -->
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-medium text-white">Overall Sentiment</h3>
+        <div class="flex items-center space-x-2">
+          <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+          <span class="text-xs text-green-400 font-medium">LIVE</span>
+        </div>
+      </div>
+      
+      <div phx-hook="OverallSentimentChart" id="overall-sentiment-chart" data-sentiment={Jason.encode!(@sentiment_analysis[:overall] || 0)}>
+        <div class="h-48 relative bg-gray-900 rounded border border-gray-700 mb-4">
+          <canvas id="overall-sentiment-canvas" class="absolute inset-0 w-full h-full"></canvas>
+        </div>
+      </div>
+      
+      <div class="text-center">
+        <div class="text-2xl font-bold text-white mb-2" data-overall-sentiment-value>
+          <%= format_change(@sentiment_analysis[:overall] || 0) %>
+        </div>
+        <div class="w-full bg-gray-600 rounded-full h-2">
+          <div class="h-2 rounded-full bg-green-500 transition-all duration-300" data-overall-sentiment-bar
+               style={"width: #{min(abs((@sentiment_analysis[:overall] || 0) * 200), 100)}%"}>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- News Sentiment -->
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-medium text-white">News Sentiment</h3>
+        <div class="flex items-center space-x-2">
+          <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+          <span class="text-xs text-green-400 font-medium">LIVE</span>
+        </div>
+      </div>
+      
+      <div phx-hook="NewsSentimentChart" id="news-sentiment-chart" data-sentiment={Jason.encode!(@sentiment_analysis[:news] || 0)}>
+        <div class="h-48 relative bg-gray-900 rounded border border-gray-700 mb-4">
+          <canvas id="news-sentiment-canvas" class="absolute inset-0 w-full h-full"></canvas>
+        </div>
+      </div>
+      
+      <div class="text-center">
+        <div class="text-2xl font-bold text-white mb-2" data-news-sentiment-value>
+          <%= format_change(@sentiment_analysis[:news] || 0) %>
+        </div>
+        <div class="w-full bg-gray-600 rounded-full h-2">
+          <div class="h-2 rounded-full bg-green-500 transition-all duration-300" data-news-sentiment-bar
+               style={"width: #{min(abs((@sentiment_analysis[:news] || 0) * 200), 100)}%"}>
+          </div>
+        </div>
+        <div class="text-xs text-gray-400 mt-1">
+          <%= length(@news_articles) %> articles
+        </div>
+      </div>
+    </div>
+    
+    <!-- Social Sentiment -->
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-medium text-white">Social Sentiment</h3>
+        <div class="flex items-center space-x-2">
+          <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+          <span class="text-xs text-green-400 font-medium">LIVE</span>
+        </div>
+      </div>
+      
+      <div phx-hook="SocialSentimentChart" id="social-sentiment-chart" data-sentiment={Jason.encode!(@sentiment_analysis[:social] || 0)}>
+        <div class="h-48 relative bg-gray-900 rounded border border-gray-700 mb-4">
+          <canvas id="social-sentiment-canvas" class="absolute inset-0 w-full h-full"></canvas>
+        </div>
+      </div>
+      
+      <div class="text-center">
+        <div class="text-2xl font-bold text-white mb-2" data-social-sentiment-value>
+          <%= format_change(@sentiment_analysis[:social] || 0) %>
+        </div>
+        <div class="w-full bg-gray-600 rounded-full h-2">
+          <div class="h-2 rounded-full bg-green-500 transition-all duration-300" data-social-sentiment-bar
+               style={"width: #{min(abs((@sentiment_analysis[:social] || 0) * 200), 100)}%"}>
+          </div>
+        </div>
+        <div class="text-xs text-gray-400 mt-1">
+          Social trends
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Breaking News and Social Trends -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Live News Feed -->
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 overflow-hidden">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-medium text-white">🔴 Live News Feed</h3>
+        <div class="flex items-center space-x-2">
+          <div class="w-2 h-2 bg-red-500 rounded-full animate-pulse live-dot" data-live-indicator></div>
+          <span class="text-xs text-red-400 font-medium text-glow" data-live>LIVE</span>
+        </div>
+      </div>
+      <div class="space-y-3 h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 relative" data-news-feed data-streaming>
+        <!-- Gradient overlay for continuous scroll effect -->
+        <div class="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-gray-800 to-transparent z-10 pointer-events-none"></div>
+        <div class="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-gray-800 to-transparent z-10 pointer-events-none"></div>
+        <%= for {article, index} <- Enum.with_index(Enum.take(@news_articles, 15)) do %>
+          <div class={"border-l-4 border-blue-500 pl-4 py-2 bg-gray-700/30 rounded-r-lg transition-all duration-300 hover:bg-gray-700/50 animate-fade-in-up"} 
+               style={"animation-delay: #{index * 0.1}s"}>
+            <div class="flex items-start justify-between">
+              <div class="flex-1">
+                <h4 class="text-sm font-semibold text-white mb-1 leading-tight" data-headline>
+                  <%= article.title %>
+                </h4>
+                <p class="text-xs text-gray-400 mb-2 line-clamp-2">
+                  <%= article.description %>
+                </p>
+                <div class="flex items-center gap-3 text-xs text-gray-500">
+                  <span class="flex items-center gap-1">
+                    📰 <%= article.source %>
+                  </span>
+                  <span class="flex items-center gap-1">
+                    🕒 <%= Calendar.strftime(article.published_at, "%H:%M") %>
+                  </span>
+                </div>
+              </div>
+              <div class="ml-3 flex flex-col items-end">
+                <span class={"px-2 py-1 text-xs rounded-full #{political_sentiment_class(article.sentiment)} animate-pulse-slow"}>
+                  <%= political_sentiment_label(article.sentiment) %>
+                </span>
+                <div class="text-xs text-yellow-400 mt-1">
+                  ⚡ <%= :erlang.float_to_binary(article.importance_score * 100, [{:decimals, 0}]) %>%
+                </div>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Google Trends Search Data -->
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-medium text-white">🔍 Google Trends</h3>
+        <div class="flex items-center space-x-2">
+          <div class="text-xs text-purple-400">Search Sentiment</div>
+          <div class="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+        </div>
+      </div>
+      <div class="space-y-3 max-h-96 overflow-y-auto">
+        <%= for {trend, index} <- Enum.with_index(Enum.take(@google_trends, 8)) do %>
+          <div class={
+            "flex items-center justify-between p-3 rounded-lg transition-all duration-500 hover:bg-gray-600/50 animate-slide-in-right " <>
+            "border-l-4 #{case Map.get(trend, :sentiment_shift, :stable) do
+              :surge -> "border-red-500 bg-red-500/10"
+              :crash -> "border-red-600 bg-red-600/10"
+              :rising -> "border-green-500 bg-green-500/10"
+              :falling -> "border-orange-500 bg-orange-500/10"
+              _ -> "border-gray-500 bg-gray-700/30"
+            end}"
+          } style={
+            "animation-delay: #{index * 0.15}s"
+          }>
+            <div class="flex items-center space-x-3">
+              <div class="text-2xl">
+                <%= trends_sentiment_shift_icon(Map.get(trend, :sentiment_shift, :stable)) %>
+              </div>
+              <div>
+                <div class="flex items-center space-x-2">
+                  <div class={
+                    "text-sm font-medium #{trends_category_color(Map.get(trend, :category, :other))}"
+                  }>
+                    <%= Map.get(trend, :title, Map.get(trend, :keyword, "Unknown")) %>
+                  </div>
+                  <span class={
+                    "text-xs px-2 py-1 rounded-full #{trends_sentiment_shift_class(Map.get(trend, :sentiment_shift, :stable))}"
+                  }>
+                    <%= String.capitalize(to_string(Map.get(trend, :sentiment_shift, :stable))) %>
+                  </span>
+                </div>
+                <div class="flex items-center space-x-3 text-xs text-gray-400 mt-1">
+                  <span>🔍 <%= Map.get(trend, :search_volume, "N/A") %></span>
+                  <span>📊 Interest: <%= Map.get(trend, :interest_score, 0) %></span>
+                </div>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="flex items-center space-x-2">
+                <%= if Map.has_key?(trend, :change_24h) do %>
+                  <div class={
+                    "text-sm font-bold #{if Map.get(trend, :change_24h, 0) >= 0, do: "text-green-400", else: "text-red-400"}"
+                  }>
+                    <%= format_trends_change(Map.get(trend, :change_24h, 0)) %>
+                  </div>
+                <% end %>
+                <div class={
+                  "w-2 h-8 rounded #{case Map.get(trend, :sentiment_shift, :stable) do
+                    :surge -> "bg-gradient-to-t from-red-600 to-red-400"
+                    :crash -> "bg-gradient-to-t from-red-700 to-red-500"
+                    :rising -> "bg-gradient-to-t from-green-600 to-green-400"
+                    :falling -> "bg-gradient-to-t from-orange-600 to-orange-400"
+                    _ -> "bg-gradient-to-t from-gray-600 to-gray-400"
+                  end}"
+                }>
+                </div>
+              </div>
+              <div class="text-xs text-gray-500 mt-1">
+                24h change
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Live Social Media Trends -->
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-medium text-white">📱 Social Media Trends</h3>
+        <div class="text-xs text-blue-400">Real-time</div>
+      </div>
+      <div class="space-y-3 max-h-96 overflow-y-auto">
+        <%= for {trend, index} <- Enum.with_index(Enum.take(@social_trends, 8)) do %>
+          <div class={"flex items-center justify-between p-3 bg-gradient-to-r from-gray-700/30 to-gray-600/30 rounded-lg transition-all duration-500 hover:from-gray-600/50 hover:to-gray-500/50 animate-slide-in-right"} 
+               style={"animation-delay: #{index * 0.15}s"}>
+            <div class="flex items-center space-x-3">
+              <div class={"w-3 h-3 rounded-full #{if trend.growth_rate > 0.5, do: "bg-red-500 animate-pulse", else: "bg-green-500"}"}>
+              </div>
+              <div>
+                <div class="flex items-center space-x-2">
+                  <div class="text-sm font-medium text-white">
+                    <%= Map.get(trend, :hashtag, Map.get(trend, :topic, "Unknown")) %>
+                  </div>
+                  <%= if trend.growth_rate > 0.3 do %>
+                    <span class="text-xs bg-orange-500/20 text-orange-400 px-2 py-1 rounded-full animate-bounce">
+                      🔥 Trending
+                    </span>
+                  <% end %>
+                </div>
+                <div class="flex items-center space-x-3 text-xs text-gray-400 mt-1">
+                  <span>📊 <%= String.capitalize(to_string(trend.platform)) %></span>
+                  <span>⏱️ <%= Calendar.strftime(trend.timestamp, "%H:%M") %></span>
+                </div>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="flex items-center space-x-2">
+                <div class="text-sm font-bold text-white">
+                  <%= political_format_large_number(Map.get(trend, :volume, Map.get(trend, :posts, 0))) %>
+                </div>
+                <div class={"w-2 h-8 rounded #{if trend.growth_rate > 0.3, do: "bg-gradient-to-t from-red-600 to-orange-400", else: "bg-gradient-to-t from-blue-600 to-cyan-400"}"}>
+                </div>
+              </div>
+              <div class={"text-xs mt-1 #{political_sentiment_color(trend.sentiment)} font-medium"}>
+                <%= political_sentiment_label(trend.sentiment) %>
+              </div>
+              <div class="text-xs text-gray-500 mt-1">
+                Growth: <%= :erlang.float_to_binary(trend.growth_rate * 100, [{:decimals, 1}]) %>%
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Political Events Timeline -->
+  <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+    <h3 class="text-lg font-medium text-white mb-4">Upcoming Political Events</h3>
+    <div class="space-y-4">
+      <%= for event <- @events do %>
+        <div class="flex items-start gap-4 p-4 bg-gray-700/50 rounded-lg">
+          <div class={"w-4 h-4 rounded-full mt-1 #{political_event_impact_color(event.impact_score)}"}>
+          </div>
+          <div class="flex-1">
+            <h4 class="text-sm font-semibold text-white">
+              <%= event.description %>
+            </h4>
+            <div class="flex items-center gap-4 mt-2 text-xs text-gray-400">
+              <span>📍 <%= event.location %></span>
+              <span>📅 <%= event.date %></span>
+              <span class={"px-2 py-1 rounded #{political_impact_badge(event.impact_score)}"}>
+                Impact: <%= round(format_change(event.impact_score * 100)) %>%
+              </span>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Sentiment Analysis by Category -->
+  <%= if Map.get(@sentiment_analysis, :by_category) do %>
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <h3 class="text-lg font-medium text-white mb-4">Sentiment by Category</h3>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <%= for {category, sentiment} <- @sentiment_analysis.by_category do %>
+          <div class="text-center p-4 bg-gray-700/50 rounded-lg">
+            <div class="text-sm text-gray-400 mb-2">
+              <%= String.capitalize(category) %>
+            </div>
+            <div class={"text-lg font-bold #{political_sentiment_color(sentiment)}"}>
+              <%= format_change(sentiment) %>
+            </div>
+            <div class="mt-2 w-full bg-gray-600 rounded-full h-1">
+              <div class={"h-1 rounded-full #{if sentiment >= 0, do: "bg-green-500", else: "bg-red-500"}"} 
+                   style={"width: #{abs(sentiment * 100)}%"}>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>

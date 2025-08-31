@@ -1,0 +1,290 @@
+<div class="space-y-6">
+  <!-- Threat Level Indicator -->
+  <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+    <div class="flex items-center justify-between">
+      <div>
+        <h2 class="text-lg font-medium text-white">Global Threat Assessment</h2>
+        <p class="mt-1 text-sm text-gray-400">Real-time analysis across all monitoring systems</p>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class={"px-4 py-2 rounded-lg font-semibold #{dashboard_threat_level_class(@global_threat_level)}"}>
+          <%= String.upcase(to_string(@global_threat_level)) %>
+        </div>
+        <div class="text-right">
+          <div class="text-2xl font-bold text-white"><%= @anomaly_count %></div>
+          <div class="text-xs text-gray-400">Active Anomalies</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- System Status Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-gray-400">Active Monitors</p>
+          <p class="text-2xl font-bold text-white"><%= @system_status.monitors_active %></p>
+        </div>
+        <div class="p-3 bg-green-500/20 rounded-lg">
+          <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+      </div>
+    </div>
+    
+    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-gray-400">Data Streams</p>
+          <p class="text-2xl font-bold text-white"><%= @system_status.data_streams %></p>
+        </div>
+        <div class="p-3 bg-blue-500/20 rounded-lg">
+          <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+          </svg>
+        </div>
+      </div>
+    </div>
+    
+    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-gray-400">ML Models</p>
+          <p class="text-2xl font-bold text-white"><%= @system_status.ml_models %></p>
+        </div>
+        <div class="p-3 bg-purple-500/20 rounded-lg">
+          <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+          </svg>
+        </div>
+      </div>
+    </div>
+    
+    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-gray-400">System Uptime</p>
+          <p class="text-2xl font-bold text-white"><%= @system_status.uptime %></p>
+        </div>
+        <div class="p-3 bg-green-500/20 rounded-lg">
+          <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Monitor Summaries -->
+  <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+    <!-- Financial Summary -->
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-medium text-white">Financial Markets</h3>
+        <span class={"px-2 py-1 text-xs rounded #{dashboard_market_trend_class(@financial_summary.trend)}"}>
+          <%= String.upcase(to_string(@financial_summary.trend)) %>
+        </span>
+      </div>
+      <div class="space-y-3">
+        <div class="flex justify-between items-center">
+          <span class="text-sm text-gray-400">Market Status</span>
+          <span class="text-sm text-white font-medium"><%= @financial_summary.market_status %></span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-sm text-gray-400">VIX Index</span>
+          <span class={"text-sm font-medium #{dashboard_vix_color(@financial_summary.vix)}"}>
+            <%= @financial_summary.vix %>
+          </span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-sm text-gray-400">Crypto Dominance</span>
+          <span class="text-sm text-white font-medium"><%= @financial_summary.crypto_dominance %></span>
+        </div>
+      </div>
+      <div class="mt-4 pt-4 border-t border-gray-700">
+        <.link navigate={~p"/financial"} class="text-sm text-blue-400 hover:text-blue-300">
+          View Details →
+        </.link>
+      </div>
+    </div>
+
+    <!-- Political Summary -->
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-medium text-white">Political Climate</h3>
+        <span class={"px-2 py-1 text-xs rounded #{dashboard_sentiment_class(@political_summary.sentiment)}"}>
+          <%= dashboard_sentiment_label(@political_summary.sentiment) %>
+        </span>
+      </div>
+      <div class="space-y-3">
+        <div class="flex justify-between items-center">
+          <span class="text-sm text-gray-400">Breaking News</span>
+          <span class="text-sm text-white font-medium"><%= @political_summary.breaking_news %></span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-sm text-gray-400">Sentiment Score</span>
+          <span class={"text-sm font-medium #{dashboard_sentiment_color(@political_summary.sentiment)}"}>
+            <%= Float.round(@political_summary.sentiment, 2) %>
+          </span>
+        </div>
+        <div>
+          <span class="text-sm text-gray-400">Trending Topics</span>
+          <div class="mt-1 flex flex-wrap gap-1">
+            <%= for topic <- @political_summary.trending_topics do %>
+              <span class="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded">
+                <%= topic %>
+              </span>
+            <% end %>
+          </div>
+        </div>
+      </div>
+      <div class="mt-4 pt-4 border-t border-gray-700">
+        <.link navigate={~p"/political"} class="text-sm text-blue-400 hover:text-blue-300">
+          View Details →
+        </.link>
+      </div>
+    </div>
+
+    <!-- News Feed Summary -->
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-medium text-white">News Feed</h3>
+        <span class={["px-2 py-1 text-xs rounded", if(@news_summary.breaking_count > 0, do: "bg-red-500/20 text-red-400", else: "bg-green-500/20 text-green-400")]}>
+          <%= if @news_summary.breaking_count > 0, do: "BREAKING", else: "LIVE" %>
+        </span>
+      </div>
+      <div class="space-y-3">
+        <div class="flex justify-between items-center">
+          <span class="text-sm text-gray-400">Total Articles</span>
+          <span class="text-sm text-white font-medium"><%= @news_summary.total_articles %></span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-sm text-gray-400">Breaking News</span>
+          <span class={["text-sm font-medium", if(@news_summary.breaking_count > 0, do: "text-red-400", else: "text-gray-400")]}>
+            <%= @news_summary.breaking_count %>
+          </span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-sm text-gray-400">High Priority</span>
+          <span class="text-sm text-orange-400 font-medium"><%= @news_summary.high_importance_count %></span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-sm text-gray-400">Avg Sentiment</span>
+          <span class={"text-sm font-medium #{dashboard_sentiment_color(@news_summary.avg_sentiment)}"}>
+            <%= Float.round(@news_summary.avg_sentiment, 2) %>
+          </span>
+        </div>
+      </div>
+      <div class="mt-4 pt-4 border-t border-gray-700">
+        <.link navigate={~p"/news"} class="text-sm text-blue-400 hover:text-blue-300">
+          View Feed →
+        </.link>
+      </div>
+    </div>
+
+    <!-- Trends Summary -->
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-medium text-white">Global Trends</h3>
+        <span class={["px-2 py-1 text-xs rounded", if(@trends_summary.trending_up_count > @trends_summary.total_trends / 2, do: "bg-green-500/20 text-green-400", else: "bg-orange-500/20 text-orange-400")]}>
+          <%= if @trends_summary.trending_up_count > @trends_summary.total_trends / 2, do: "RISING", else: "MIXED" %>
+        </span>
+      </div>
+      <div class="space-y-3">
+        <div class="flex justify-between items-center">
+          <span class="text-sm text-gray-400">Active Trends</span>
+          <span class="text-sm text-white font-medium"><%= @trends_summary.total_trends %></span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-sm text-gray-400">Avg Interest</span>
+          <span class="text-sm text-purple-400 font-medium"><%= @trends_summary.avg_interest_score %></span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-sm text-gray-400">Trending Up</span>
+          <span class="text-sm text-green-400 font-medium"><%= @trends_summary.trending_up_count %></span>
+        </div>
+        <div>
+          <span class="text-sm text-gray-400">Top Trend</span>
+          <div class="mt-1">
+            <span class="px-2 py-1 text-xs bg-purple-500/20 text-purple-300 rounded">
+              <%= String.slice(@trends_summary.top_trend.title, 0, 20) %><%= if String.length(@trends_summary.top_trend.title) > 20, do: "..." %>
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="mt-4 pt-4 border-t border-gray-700">
+        <.link navigate={~p"/trends"} class="text-sm text-blue-400 hover:text-blue-300">
+          View Trends →
+        </.link>
+      </div>
+    </div>
+
+    <!-- Natural Events Summary -->
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-medium text-white">Natural Events</h3>
+        <span class={"px-2 py-1 text-xs rounded #{dashboard_space_weather_class(@natural_summary.space_weather)}"}>
+          <%= @natural_summary.space_weather %>
+        </span>
+      </div>
+      <div class="space-y-3">
+        <div class="flex justify-between items-center">
+          <span class="text-sm text-gray-400">Active Events</span>
+          <span class="text-sm text-white font-medium"><%= @natural_summary.active_events %></span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-sm text-gray-400">Earthquakes (24h)</span>
+          <span class={"text-sm font-medium #{dashboard_earthquake_color(@natural_summary.earthquakes_24h)}"}>
+            <%= @natural_summary.earthquakes_24h %>
+          </span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-sm text-gray-400">Severe Weather</span>
+          <span class="text-sm text-white font-medium">
+            <%= length(@natural_summary.severe_weather) %> Active
+          </span>
+        </div>
+      </div>
+      <div class="mt-4 pt-4 border-t border-gray-700">
+        <.link navigate={~p"/natural"} class="text-sm text-blue-400 hover:text-blue-300">
+          View Details →
+        </.link>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Anomalies -->
+  <%= if length(@recent_anomalies) > 0 do %>
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-medium text-white">Recent Anomalies</h3>
+        <.link navigate={~p"/anomalies"} class="text-sm text-blue-400 hover:text-blue-300">
+          View All →
+        </.link>
+      </div>
+      <div class="space-y-2">
+        <%= for anomaly <- Enum.take(@recent_anomalies, 5) do %>
+          <div class="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg">
+            <div class="flex items-center gap-3">
+              <div class={"w-2 h-2 rounded-full #{anomaly_severity_color(anomaly.severity)}"}>
+              </div>
+              <div>
+                <p class="text-sm text-white font-medium">
+                  <%= format_anomaly_type(anomaly.type) %>
+                </p>
+                <p class="text-xs text-gray-400">
+                  <%= format_anomaly_details(anomaly) %>
+                </p>
+              </div>
+            </div>
+            <span class="text-xs text-gray-400">
+              <%= format_relative_time(anomaly.timestamp) %>
+            </span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>
