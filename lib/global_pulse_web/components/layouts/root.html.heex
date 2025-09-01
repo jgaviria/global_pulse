@@ -4,6 +4,17 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
+    
+    <!-- Global Pulse Favicon -->
+    <link rel="icon" type="image/svg+xml" href={~p"/images/favicon.svg"} />
+    <link rel="apple-touch-icon" sizes="180x180" href={~p"/images/favicon.svg"} />
+    <link rel="manifest" href={~p"/site.webmanifest"} />
+    
+    <!-- App metadata -->
+    <meta name="application-name" content="Global Pulse" />
+    <meta name="description" content="Real-time global monitoring system for natural events, space weather, financial markets, and social sentiment" />
+    <meta name="theme-color" content="#1f2937" />
+    
     <.live_title suffix=" · Global Pulse">
       <%= assigns[:page_title] || "Dashboard" %>
     </.live_title>

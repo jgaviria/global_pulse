@@ -10,7 +10,7 @@ defmodule GlobalPulse.Application do
       GlobalPulse.DataStore,
       GlobalPulse.StreamSupervisor,
       {GlobalPulse.FinancialMonitor, []},
-      {GlobalPulse.PoliticalMonitor, []},
+      {GlobalPulse.NewsMonitor, []},
       {GlobalPulse.NaturalEventsMonitor, []},
       {GlobalPulse.GoogleTrendsMonitor, []},
       GlobalPulse.MLPipeline,

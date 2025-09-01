@@ -19,7 +19,6 @@ defmodule GlobalPulseWeb.Router do
 
     live "/", DashboardLive.Index, :index
     live "/financial", FinancialLive.Index, :index
-    live "/political", PoliticalLive.Index, :index
     live "/news", NewsLive.Index, :index
     live "/trends", TrendsLive.Index, :index
     live "/natural", NaturalEventsLive.Index, :index

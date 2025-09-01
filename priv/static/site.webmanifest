@@ -1,0 +1,24 @@
+{
+  "name": "Global Pulse",
+  "short_name": "Global Pulse",
+  "description": "Real-time global monitoring system for natural events, space weather, financial markets, and social sentiment",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1f2937",
+  "theme_color": "#1f2937",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/images/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/images/global_pulse_icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

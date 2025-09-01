@@ -5,7 +5,7 @@ defmodule GlobalPulseWeb.PoliticalLive.Index do
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
-      Phoenix.PubSub.subscribe(GlobalPulse.PubSub, "political_data")
+      Phoenix.PubSub.subscribe(GlobalPulse.PubSub, "news_updates")
       Phoenix.PubSub.subscribe(GlobalPulse.PubSub, "anomalies")
       
       # Schedule less frequent data refresh to avoid interfering with smooth chart
@@ -69,16 +69,13 @@ defmodule GlobalPulseWeb.PoliticalLive.Index do
   
   defp fetch_political_data do
     try do
-      case GlobalPulse.Services.NewsAggregator.fetch_all_news() do
-        {:ok, articles} -> 
-          Logger.debug("📰 Fetched #{length(articles)} articles from NewsAggregator")
-          process_aggregated_news_data(articles)
+      case GlobalPulse.NewsMonitor.get_latest_data() do
+        data when is_map(data) -> 
+          Logger.debug("📰 Fetched data from NewsMonitor")
+          data
         _ -> 
-          Logger.warning("📰 NewsAggregator unavailable, using monitor fallback")
-          case GlobalPulse.PoliticalMonitor.get_latest_data() do
-            data when is_map(data) -> data
-            _ -> fallback_political_data()
-          end
+          Logger.warning("📰 NewsMonitor unavailable, using fallback")
+          fallback_political_data()
       end
     rescue
       e ->

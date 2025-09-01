@@ -1,8 +1,21 @@
 <div class="container mx-auto px-6 py-8">
-  <!-- Header -->
+  <!-- Header with Live Indicator -->
   <div class="flex justify-between items-center mb-8">
     <div>
-      <h1 class="text-3xl font-bold text-white mb-2">Global News Feed</h1>
+      <h1 class="text-3xl font-bold text-white mb-2 flex items-center">
+        Global News Feed
+        <%= if @pulse_active do %>
+          <span class="ml-3 relative flex h-3 w-3">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+          </span>
+        <% end %>
+        <%= if @new_articles_count > 0 do %>
+          <span class="ml-2 px-2 py-1 text-xs bg-blue-500/20 text-blue-400 rounded-full animate-pulse">
+            +<%= @new_articles_count %> new
+          </span>
+        <% end %>
+      </h1>
       <p class="text-gray-400">Real-time news aggregation from multiple sources</p>
     </div>
     
@@ -37,7 +50,7 @@
     <div class="bg-gray-800 p-6 rounded-lg">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-gray-400 text-sm">Total Articles</p>
+          <p class="text-gray-400 text-sm">Total Data Points</p>
           <p class="text-2xl font-bold text-white"><%= @news_summary.total_articles %></p>
         </div>
         <div class="bg-blue-500/20 p-3 rounded-full">
@@ -98,6 +111,248 @@
     </div>
   </div>
 
+  <!-- Data Sources Indicator -->
+  <div class="bg-gray-800/50 border border-gray-700 rounded-lg p-6 mb-8">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-semibold text-white flex items-center">
+        <svg class="h-5 w-5 text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+        </svg>
+        Live Data Sources
+      </h2>
+      <div class="flex items-center text-sm text-gray-400">
+        <span class="relative flex h-2 w-2 mr-2">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+        </span>
+        Active Feeds
+      </div>
+    </div>
+    
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <!-- RSS News Feeds -->
+      <div class="space-y-2">
+        <h3 class="text-sm font-medium text-gray-400 mb-2 flex items-center">
+          📰 News Agencies
+          <%= case @live_sources.rss do %>
+            <% :active -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-green-500/20 text-green-400 text-xs rounded animate-pulse">PULLING</span>
+            <% :connected -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-green-500/20 text-green-400 text-xs rounded">LIVE</span>
+            <% :error -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-red-500/20 text-red-400 text-xs rounded">ERROR</span>
+            <% _ -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-gray-500/20 text-gray-400 text-xs rounded">OFFLINE</span>
+          <% end %>
+        </h3>
+        <div class="space-y-1">
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class(@live_sources.rss)}></span>
+              <span class={source_text_class(@live_sources.rss)}>BBC World News</span>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">1m ago</span>
+          </div>
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class(@live_sources.rss)}></span>
+              <span class={source_text_class(@live_sources.rss)}>Reuters International</span>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">2m ago</span>
+          </div>
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class(@live_sources.rss)}></span>
+              <span class={source_text_class(@live_sources.rss)}>Associated Press</span>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">30s ago</span>
+          </div>
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class(@live_sources.rss)}></span>
+              <span class={source_text_class(@live_sources.rss)}>The Guardian</span>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">3m ago</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Major Networks -->
+      <div class="space-y-2">
+        <h3 class="text-sm font-medium text-gray-400 mb-2 flex items-center">
+          📡 Major Networks
+          <%= case @live_sources.major_networks do %>
+            <% :active -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-green-500/20 text-green-400 text-xs rounded animate-pulse">PULLING</span>
+            <% :connected -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-green-500/20 text-green-400 text-xs rounded">LIVE</span>
+            <% :error -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-red-500/20 text-red-400 text-xs rounded">ERROR</span>
+            <% _ -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-gray-500/20 text-gray-400 text-xs rounded">OFFLINE</span>
+          <% end %>
+        </h3>
+        <div class="space-y-1">
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class(@live_sources.major_networks)}></span>
+              <span class={source_text_class(@live_sources.major_networks)}>CNN International</span>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">45s ago</span>
+          </div>
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class(@live_sources.major_networks)}></span>
+              <span class={source_text_class(@live_sources.major_networks)}>NPR News</span>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">1m ago</span>
+          </div>
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class(@live_sources.major_networks)}></span>
+              <span class={source_text_class(@live_sources.major_networks)}>Al Jazeera</span>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">30s ago</span>
+          </div>
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class(@live_sources.major_networks)}></span>
+              <span class={source_text_class(@live_sources.major_networks)}>BBC Politics</span>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">2m ago</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Social & Forums -->
+      <div class="space-y-2">
+        <h3 class="text-sm font-medium text-gray-400 mb-2 flex items-center">
+          💬 Social Feeds
+          <%= case @live_sources.reddit do %>
+            <% :active -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-orange-500/20 text-orange-400 text-xs rounded animate-pulse">PULLING</span>
+            <% :connected -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-orange-500/20 text-orange-400 text-xs rounded">LIVE</span>
+            <% :error -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-red-500/20 text-red-400 text-xs rounded">ERROR</span>
+            <% _ -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-gray-500/20 text-gray-400 text-xs rounded">OFFLINE</span>
+          <% end %>
+        </h3>
+        <div class="space-y-1">
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class_orange(@live_sources.reddit)}></span>
+              <span class={source_text_class_orange(@live_sources.reddit)}>Reddit r/worldnews</span>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">15s ago</span>
+          </div>
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class_orange(@live_sources.reddit)}></span>
+              <span class={source_text_class_orange(@live_sources.reddit)}>Reddit r/politics</span>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">45s ago</span>
+          </div>
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class_orange(@live_sources.reddit)}></span>
+              <span class={source_text_class_orange(@live_sources.reddit)}>Reddit r/news</span>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">1m ago</span>
+          </div>
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class_orange(@live_sources.reddit)}></span>
+              <span class={source_text_class_orange(@live_sources.reddit)}>Reddit r/geopolitics</span>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">20s ago</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Analytics & Events -->
+      <div class="space-y-2">
+        <h3 class="text-sm font-medium text-gray-400 mb-2 flex items-center">
+          📊 Analytics
+          <%= case @live_sources.analytics do %>
+            <% :active -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded animate-pulse">PROCESSING</span>
+            <% :connected -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded">LIVE</span>
+            <% :error -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-red-500/20 text-red-400 text-xs rounded">ERROR</span>
+            <% _ -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-gray-500/20 text-gray-400 text-xs rounded">OFFLINE</span>
+          <% end %>
+        </h3>
+        <div class="space-y-1">
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class_purple(@live_sources.analytics)}></span>
+              <span class={source_text_class_purple(@live_sources.analytics)}>Political Events</span>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">5m ago</span>
+          </div>
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class_blue(@live_sources.sentiment)}></span>
+              <span class={source_text_class_blue(@live_sources.sentiment)}>Sentiment Analysis</span>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">Live</span>
+          </div>
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class_purple(@live_sources.analytics)}></span>
+              <span class={source_text_class_purple(@live_sources.analytics)}>Trend Detection</span>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">2m ago</span>
+          </div>
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class_yellow(@live_sources.anomaly)}></span>
+              <span class={source_text_class_yellow(@live_sources.anomaly)}>Anomaly Detection</span>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">3 alerts</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Data Source Stats -->
+    <div class="mt-4 pt-4 border-t border-gray-700">
+      <div class="flex items-center justify-between text-xs text-gray-400">
+        <div class="flex items-center space-x-4">
+          <span>13+ RSS Feeds</span>
+          <span>•</span>
+          <span>4 Reddit Communities</span>
+          <span>•</span>
+          <span>Real-time Sentiment</span>
+          <span>•</span>
+          <span>1-min Updates</span>
+        </div>
+        <div class="flex items-center space-x-3">
+          <span class="flex items-center">
+            <span class="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
+            Live
+          </span>
+          <span class="flex items-center">
+            <span class="w-2 h-2 bg-orange-500 rounded-full mr-1"></span>
+            Social
+          </span>
+          <span class="flex items-center">
+            <span class="w-2 h-2 bg-purple-500 rounded-full mr-1"></span>
+            Analytics
+          </span>
+          <span class="flex items-center">
+            <span class="w-2 h-2 bg-yellow-500 rounded-full mr-1"></span>
+            Anomaly
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Breaking News Section -->
   <%= if length(@breaking_news) > 0 do %>
     <div class="mb-8">
@@ -125,7 +380,7 @@
                 <span><%= article.source %></span>
                 <span><%= format_time_ago(article.published_at) %></span>
                 <%= if Map.has_key?(article, :importance_score) do %>
-                  <span class={"#{importance_color(article.importance_score)}"}>
+                  <span class={importance_color(article.importance_score)}>
                     Priority: <%= Float.round((article.importance_score || 0) * 100) %>%
                   </span>
                 <% end %>
@@ -158,9 +413,12 @@
   </div>
 
   <!-- Articles Grid -->
-  <div class="grid gap-6">
-    <%= for article <- filter_articles_by_category(@all_articles, @selected_category) |> Enum.take(50) do %>
-      <div class="bg-gray-800 p-6 rounded-lg hover:bg-gray-750 transition-colors duration-200">
+  <div class="grid gap-6" id="articles-grid">
+    <%= for {article, index} <- filter_articles_by_category(@all_articles, @selected_category) |> Enum.with_index() do %>
+      <div 
+        class={"bg-gray-800 p-6 rounded-lg hover:bg-gray-750 transition-all duration-300 #{if index < 3, do: "animate-pulse border-l-2 border-blue-500/50"}"} 
+        id={"article-#{index}"}
+      >
         <!-- Article Header -->
         <div class="flex justify-between items-start mb-3">
           <h3 class="font-semibold text-white text-lg leading-tight flex-grow mr-4">
@@ -235,11 +493,9 @@
   </div>
 
   <!-- Load More / Pagination could go here -->
-  <%= if length(filter_articles_by_category(@all_articles, @selected_category)) > 50 do %>
-    <div class="text-center mt-8">
-      <p class="text-gray-400 text-sm">
-        Showing 50 of <%= length(filter_articles_by_category(@all_articles, @selected_category)) %> articles
-      </p>
-    </div>
-  <% end %>
+  <div class="text-center mt-8">
+    <p class="text-gray-400 text-sm">
+      Showing all <%= length(filter_articles_by_category(@all_articles, @selected_category)) %> data points
+    </p>
+  </div>
 </div>

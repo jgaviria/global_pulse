@@ -260,7 +260,7 @@ defmodule GlobalPulse.Services.NewsAggregator do
         description: String.slice(selftext, 0, 200),
         url: "https://reddit.com" <> Map.get(post, "permalink", ""),
         source: "Reddit - #{format_source_name(source)}",
-        published_at: DateTime.from_unix!(Map.get(post, "created_utc", 0)),
+        published_at: safe_parse_reddit_timestamp(Map.get(post, "created_utc")),
         sentiment: analyze_sentiment(title, selftext),
         categories: categorize_article(title, selftext),
         score: Map.get(post, "score", 0),
@@ -457,6 +457,16 @@ defmodule GlobalPulse.Services.NewsAggregator do
     threat_score = base_threat + (threat_count * 15)
     min(100, max(0, threat_score))
   end
+
+  defp safe_parse_reddit_timestamp(nil), do: DateTime.utc_now()
+  defp safe_parse_reddit_timestamp(timestamp) when is_number(timestamp) do
+    try do
+      DateTime.from_unix!(timestamp)
+    rescue
+      _ -> DateTime.utc_now()
+    end
+  end
+  defp safe_parse_reddit_timestamp(_), do: DateTime.utc_now()
 
   defp detect_geographic_scope(article) do
     text = String.downcase("#{article.title} #{article.description}")
