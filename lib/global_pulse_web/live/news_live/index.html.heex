@@ -4,12 +4,6 @@
     <div>
       <h1 class="text-3xl font-bold text-white mb-2 flex items-center">
         Global News Feed
-        <%= if @pulse_active do %>
-          <span class="ml-3 relative flex h-3 w-3">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-            <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-          </span>
-        <% end %>
         <%= if @new_articles_count > 0 do %>
           <span class="ml-2 px-2 py-1 text-xs bg-blue-500/20 text-blue-400 rounded-full animate-pulse">
             +<%= @new_articles_count %> new
@@ -148,29 +142,51 @@
         <div class="space-y-1">
           <div class="flex items-center justify-between text-xs group">
             <div class="flex items-center">
-              <span class={source_indicator_class(@live_sources.rss)}></span>
-              <span class={source_text_class(@live_sources.rss)}>BBC World News</span>
+              <span class={source_indicator_class(@live_sources.bbc)}></span>
+              <span class={source_text_class(@live_sources.bbc)}>BBC World News</span>
+              <%= if format_http_code(Map.get(@http_codes, :bbc)) do %>
+                <span class="ml-1 text-gray-600 text-[10px]">(<%= format_http_code(Map.get(@http_codes, :bbc)) %>)</span>
+              <% end %>
             </div>
             <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">1m ago</span>
           </div>
           <div class="flex items-center justify-between text-xs group">
             <div class="flex items-center">
-              <span class={source_indicator_class(@live_sources.rss)}></span>
-              <span class={source_text_class(@live_sources.rss)}>Reuters International</span>
+              <span class={source_indicator_class(@live_sources.reuters)}></span>
+              <span class={source_text_class(@live_sources.reuters)}>Reuters International</span>
+              <%= if format_http_code(Map.get(@http_codes, :reuters)) do %>
+                <span class="ml-1 text-gray-600 text-[10px]">(<%= format_http_code(Map.get(@http_codes, :reuters)) %>)</span>
+              <% end %>
             </div>
             <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">2m ago</span>
           </div>
           <div class="flex items-center justify-between text-xs group">
             <div class="flex items-center">
-              <span class={source_indicator_class(@live_sources.rss)}></span>
-              <span class={source_text_class(@live_sources.rss)}>Associated Press</span>
+              <span class={source_indicator_class(@live_sources.ap)}></span>
+              <span class={source_text_class(@live_sources.ap)}>Associated Press</span>
+              <%= if format_http_code(Map.get(@http_codes, :ap)) do %>
+                <span class="ml-1 text-gray-600 text-[10px]">(<%= format_http_code(Map.get(@http_codes, :ap)) %>)</span>
+              <% end %>
             </div>
             <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">30s ago</span>
           </div>
           <div class="flex items-center justify-between text-xs group">
             <div class="flex items-center">
-              <span class={source_indicator_class(@live_sources.rss)}></span>
-              <span class={source_text_class(@live_sources.rss)}>The Guardian</span>
+              <span class={source_indicator_class(@live_sources.el_pais)}></span>
+              <span class={source_text_class(@live_sources.el_pais)}>El País</span>
+              <%= if format_http_code(Map.get(@http_codes, :el_pais)) do %>
+                <span class="ml-1 text-gray-600 text-[10px]">(<%= format_http_code(Map.get(@http_codes, :el_pais)) %>)</span>
+              <% end %>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">1m ago</span>
+          </div>
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class(@live_sources.guardian)}></span>
+              <span class={source_text_class(@live_sources.guardian)}>The Guardian</span>
+              <%= if format_http_code(Map.get(@http_codes, :guardian)) do %>
+                <span class="ml-1 text-gray-600 text-[10px]">(<%= format_http_code(Map.get(@http_codes, :guardian)) %>)</span>
+              <% end %>
             </div>
             <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">3m ago</span>
           </div>
@@ -195,29 +211,32 @@
         <div class="space-y-1">
           <div class="flex items-center justify-between text-xs group">
             <div class="flex items-center">
-              <span class={source_indicator_class(@live_sources.major_networks)}></span>
-              <span class={source_text_class(@live_sources.major_networks)}>CNN International</span>
+              <span class={source_indicator_class(@live_sources.cnn)}></span>
+              <span class={source_text_class(@live_sources.cnn)}>CNN International</span>
+              <%= if format_http_code(Map.get(@http_codes, :cnn)) do %>
+                <span class="ml-1 text-gray-600 text-[10px]">(<%= format_http_code(Map.get(@http_codes, :cnn)) %>)</span>
+              <% end %>
             </div>
             <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">45s ago</span>
           </div>
           <div class="flex items-center justify-between text-xs group">
             <div class="flex items-center">
-              <span class={source_indicator_class(@live_sources.major_networks)}></span>
-              <span class={source_text_class(@live_sources.major_networks)}>NPR News</span>
+              <span class={source_indicator_class(@live_sources.npr)}></span>
+              <span class={source_text_class(@live_sources.npr)}>NPR News</span>
             </div>
             <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">1m ago</span>
           </div>
           <div class="flex items-center justify-between text-xs group">
             <div class="flex items-center">
-              <span class={source_indicator_class(@live_sources.major_networks)}></span>
-              <span class={source_text_class(@live_sources.major_networks)}>Al Jazeera</span>
+              <span class={source_indicator_class(@live_sources.aljazeera)}></span>
+              <span class={source_text_class(@live_sources.aljazeera)}>Al Jazeera</span>
             </div>
             <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">30s ago</span>
           </div>
           <div class="flex items-center justify-between text-xs group">
             <div class="flex items-center">
-              <span class={source_indicator_class(@live_sources.major_networks)}></span>
-              <span class={source_text_class(@live_sources.major_networks)}>BBC Politics</span>
+              <span class={source_indicator_class(@live_sources.bbc_politics)}></span>
+              <span class={source_text_class(@live_sources.bbc_politics)}>BBC Politics</span>
             </div>
             <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">2m ago</span>
           </div>
@@ -242,29 +261,32 @@
         <div class="space-y-1">
           <div class="flex items-center justify-between text-xs group">
             <div class="flex items-center">
-              <span class={source_indicator_class_orange(@live_sources.reddit)}></span>
-              <span class={source_text_class_orange(@live_sources.reddit)}>Reddit r/worldnews</span>
+              <span class={source_indicator_class_orange(@live_sources.reddit_worldnews)}></span>
+              <span class={source_text_class_orange(@live_sources.reddit_worldnews)}>Reddit r/worldnews</span>
+              <%= if format_http_code(Map.get(@http_codes, :reddit_worldnews)) do %>
+                <span class="ml-1 text-gray-600 text-[10px]">(<%= format_http_code(Map.get(@http_codes, :reddit_worldnews)) %>)</span>
+              <% end %>
             </div>
             <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">15s ago</span>
           </div>
           <div class="flex items-center justify-between text-xs group">
             <div class="flex items-center">
-              <span class={source_indicator_class_orange(@live_sources.reddit)}></span>
-              <span class={source_text_class_orange(@live_sources.reddit)}>Reddit r/politics</span>
+              <span class={source_indicator_class_orange(@live_sources.reddit_politics)}></span>
+              <span class={source_text_class_orange(@live_sources.reddit_politics)}>Reddit r/politics</span>
             </div>
             <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">45s ago</span>
           </div>
           <div class="flex items-center justify-between text-xs group">
             <div class="flex items-center">
-              <span class={source_indicator_class_orange(@live_sources.reddit)}></span>
-              <span class={source_text_class_orange(@live_sources.reddit)}>Reddit r/news</span>
+              <span class={source_indicator_class_orange(@live_sources.reddit_news)}></span>
+              <span class={source_text_class_orange(@live_sources.reddit_news)}>Reddit r/news</span>
             </div>
             <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">1m ago</span>
           </div>
           <div class="flex items-center justify-between text-xs group">
             <div class="flex items-center">
-              <span class={source_indicator_class_orange(@live_sources.reddit)}></span>
-              <span class={source_text_class_orange(@live_sources.reddit)}>Reddit r/geopolitics</span>
+              <span class={source_indicator_class_orange(@live_sources.reddit_geopolitics)}></span>
+              <span class={source_text_class_orange(@live_sources.reddit_geopolitics)}>Reddit r/geopolitics</span>
             </div>
             <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">20s ago</span>
           </div>
@@ -410,6 +432,14 @@
         </button>
       <% end %>
     </div>
+  </div>
+
+  <!-- Sentiment Analysis Transparency -->
+  <div class="mb-8">
+    <.live_component 
+      module={GlobalPulseWeb.SentimentTransparencyLive} 
+      id="sentiment-transparency"
+    />
   </div>
 
   <!-- Articles Grid -->

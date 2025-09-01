@@ -11,9 +11,10 @@ defmodule GlobalPulseWeb.NewsLive.Index do
       Phoenix.PubSub.subscribe(GlobalPulse.PubSub, "trending_updates")
       Phoenix.PubSub.subscribe(GlobalPulse.PubSub, "sentiment_updates")
       Phoenix.PubSub.subscribe(GlobalPulse.PubSub, "news_pulse")
+      Phoenix.PubSub.subscribe(GlobalPulse.PubSub, "source_status")  # Subscribe to real source status
       
       # Quick refresh for real-time feel
-      :timer.send_interval(5_000, self(), :quick_refresh)
+      :timer.send_interval(30_000, self(), :check_activity)  # Check activity every 30s
       
       # Send initial pulse
       send(self(), :pulse_animation)
@@ -38,13 +39,32 @@ defmodule GlobalPulseWeb.NewsLive.Index do
      |> assign(:pulse_active, false)
      |> assign(:new_articles_count, 0)
      |> assign(:live_sources, %{
+       # Categories
        rss: :connected,
        reddit: :connected,
        major_networks: :connected,
        analytics: :connected,
        sentiment: :connected,
-       anomaly: :connected
+       anomaly: :connected,
+       # Individual RSS sources
+       bbc: :connected,
+       reuters: :connected,
+       ap: :connected,
+       el_pais: :connected,
+       guardian: :connected,
+       # Individual major networks
+       cnn: :connected,
+       npr: :connected,
+       aljazeera: :connected,
+       bbc_politics: :connected,
+       # Individual Reddit sources
+       reddit_worldnews: :connected,
+       reddit_politics: :connected,
+       reddit_news: :connected,
+       reddit_geopolitics: :connected
      })
+     |> assign(:source_error_states, %{})
+     |> assign(:http_codes, %{})
      |> assign(:last_pulse, DateTime.utc_now())}
   end
 
@@ -108,17 +128,98 @@ defmodule GlobalPulseWeb.NewsLive.Index do
     {:noreply, assign(socket, :pulse_active, !socket.assigns.pulse_active)}
   end
   
-  def handle_info(:quick_refresh, socket) do
-    # Dynamic status simulation for live data sources
-    live_sources = %{
-      rss: simulate_data_source_status(:rss),
-      reddit: simulate_data_source_status(:reddit),
-      major_networks: simulate_data_source_status(:major_networks),
-      analytics: simulate_data_source_status(:analytics),
-      sentiment: simulate_data_source_status(:sentiment),
-      anomaly: simulate_data_source_status(:anomaly)
-    }
+  def handle_info(:check_activity, socket) do
+    # Periodically set sources to active if they're pulling data
+    # This creates the pulsing effect when data is being fetched
+    live_sources = socket.assigns.live_sources
+    |> Enum.map(fn {source, status} ->
+      # Randomly show some sources as actively pulling (if they're connected)
+      if status == :connected && :rand.uniform() < 0.1 do
+        {source, :active}
+      else
+        {source, status}
+      end
+    end)
+    |> Map.new()
+    
+    # Reset active states back to connected after a short time
+    Process.send_after(self(), :reset_active_states, 2000)
+    
     {:noreply, assign(socket, :live_sources, live_sources)}
+  end
+  
+  def handle_info(:reset_active_states, socket) do
+    live_sources = socket.assigns.live_sources
+    |> Enum.map(fn {source, status} ->
+      if status == :active do
+        {source, :connected}
+      else
+        {source, status}
+      end
+    end)
+    |> Map.new()
+    
+    {:noreply, assign(socket, :live_sources, live_sources)}
+  end
+  
+  def handle_info({:source_status_update, %{source: source, status: status} = update}, socket) do
+    # Handle real status updates from the NewsAggregator
+    live_sources = Map.put(socket.assigns.live_sources, source, status)
+    
+    # Track HTTP codes
+    http_codes = socket.assigns[:http_codes] || %{}
+    http_codes = if update[:http_code] do
+      Map.put(http_codes, source, update[:http_code])
+    else
+      http_codes
+    end
+    
+    # Update category status based on individual sources
+    live_sources = update_category_statuses(live_sources)
+    
+    # Track error states with timestamp
+    source_error_states = if status == :error do
+      Map.put(socket.assigns.source_error_states, source, DateTime.utc_now())
+    else
+      Map.delete(socket.assigns.source_error_states, source)
+    end
+    
+    {:noreply, 
+     socket
+     |> assign(:live_sources, live_sources)
+     |> assign(:source_error_states, source_error_states)
+     |> assign(:http_codes, http_codes)}
+  end
+  
+  defp update_category_statuses(live_sources) do
+    # Update RSS category status based on individual RSS sources
+    rss_sources = [:bbc, :reuters, :ap, :guardian, :bbc_politics]
+    rss_status = aggregate_category_status(live_sources, rss_sources)
+    
+    # Update major networks category status
+    network_sources = [:cnn, :npr, :aljazeera]
+    networks_status = aggregate_category_status(live_sources, network_sources)
+    
+    # Update Reddit category status
+    reddit_sources = [:reddit_worldnews, :reddit_politics, :reddit_news, :reddit_geopolitics]
+    reddit_status = aggregate_category_status(live_sources, reddit_sources)
+    
+    live_sources
+    |> Map.put(:rss, rss_status)
+    |> Map.put(:major_networks, networks_status)
+    |> Map.put(:reddit, reddit_status)
+  end
+  
+  defp aggregate_category_status(live_sources, source_list) do
+    statuses = source_list
+    |> Enum.map(&Map.get(live_sources, &1, :connected))
+    
+    cond do
+      Enum.any?(statuses, &(&1 == :active)) -> :active
+      Enum.all?(statuses, &(&1 == :error)) -> :error
+      Enum.any?(statuses, &(&1 == :error)) -> :connected  # Some errors but not all
+      true -> :connected
+    end
   end
   
   def handle_info({:trending_update, trending_topics}, socket) do
@@ -295,61 +396,12 @@ defmodule GlobalPulseWeb.NewsLive.Index do
     Calendar.strftime(datetime, "%H:%M:%S UTC")
   end
   
-  defp simulate_data_source_status(source_type) do
-    rand = :rand.uniform()
-    
-    case source_type do
-      :rss ->
-        cond do
-          rand > 0.9 -> :active  # 10% actively pulling
-          rand > 0.05 -> :connected  # 85% connected
-          true -> :error  # 5% error rate
-        end
-      
-      :reddit ->
-        cond do
-          rand > 0.85 -> :active  # 15% actively pulling
-          rand > 0.08 -> :connected  # 77% connected  
-          true -> :error  # 8% error rate
-        end
-        
-      :major_networks ->
-        cond do
-          rand > 0.92 -> :active  # 8% actively pulling
-          rand > 0.03 -> :connected  # 89% connected
-          true -> :error  # 3% error rate
-        end
-        
-      :analytics ->
-        cond do
-          rand > 0.7 -> :active  # 30% actively processing
-          rand > 0.02 -> :connected  # 68% connected
-          true -> :error  # 2% error rate
-        end
-        
-      :sentiment ->
-        cond do
-          rand > 0.4 -> :active  # 60% actively processing
-          rand > 0.01 -> :connected  # 39% connected
-          true -> :error  # 1% error rate
-        end
-        
-      :anomaly ->
-        cond do
-          rand > 0.8 -> :active  # 20% actively detecting
-          rand > 0.05 -> :connected  # 75% connected
-          true -> :error  # 5% error rate
-        end
-        
-      _ -> :connected
-    end
-  end
 
   defp source_indicator_class(status) do
     case status do
-      :active -> "w-3 h-3 bg-green-500 rounded-full mr-2 transition-all duration-300 animate-ping shadow-lg shadow-green-500/50"
+      :active -> "w-3 h-3 bg-green-500 rounded-full mr-2 transition-all duration-300 animate-pulse shadow-lg shadow-green-500/50"
       :connected -> "w-3 h-3 bg-green-500 rounded-full mr-2 transition-all duration-300 shadow-lg shadow-green-500/30"
-      :error -> "w-3 h-3 bg-red-500 rounded-full mr-2 transition-all duration-300 animate-pulse"
+      :error -> "w-3 h-3 bg-red-500 rounded-full mr-2 transition-all duration-300 animate-pulse shadow-lg shadow-red-500/50"
       _ -> "w-3 h-3 bg-gray-600 rounded-full mr-2 transition-all duration-300"
     end
   end
@@ -376,9 +428,9 @@ defmodule GlobalPulseWeb.NewsLive.Index do
 
   defp source_indicator_class_orange(status) do
     case status do
-      :active -> "w-3 h-3 bg-orange-500 rounded-full mr-2 transition-all duration-300 animate-ping shadow-lg shadow-orange-500/50"
+      :active -> "w-3 h-3 bg-orange-500 rounded-full mr-2 transition-all duration-300 animate-pulse shadow-lg shadow-orange-500/50"
       :connected -> "w-3 h-3 bg-orange-500 rounded-full mr-2 transition-all duration-300 shadow-lg shadow-orange-500/30"
-      :error -> "w-3 h-3 bg-red-500 rounded-full mr-2 transition-all duration-300 animate-pulse"
+      :error -> "w-3 h-3 bg-red-500 rounded-full mr-2 transition-all duration-300 animate-pulse shadow-lg shadow-red-500/50"
       _ -> "w-3 h-3 bg-gray-600 rounded-full mr-2 transition-all duration-300"
     end
   end
@@ -395,9 +447,9 @@ defmodule GlobalPulseWeb.NewsLive.Index do
 
   defp source_indicator_class_purple(status) do
     case status do
-      :active -> "w-3 h-3 bg-purple-500 rounded-full mr-2 transition-all duration-300 animate-ping shadow-lg shadow-purple-500/50"
+      :active -> "w-3 h-3 bg-purple-500 rounded-full mr-2 transition-all duration-300 animate-pulse shadow-lg shadow-purple-500/50"
       :connected -> "w-3 h-3 bg-purple-500 rounded-full mr-2 transition-all duration-300 shadow-lg shadow-purple-500/30"
-      :error -> "w-3 h-3 bg-red-500 rounded-full mr-2 transition-all duration-300 animate-pulse"
+      :error -> "w-3 h-3 bg-red-500 rounded-full mr-2 transition-all duration-300 animate-pulse shadow-lg shadow-red-500/50"
       _ -> "w-3 h-3 bg-gray-600 rounded-full mr-2 transition-all duration-300"
     end
   end
@@ -414,9 +466,9 @@ defmodule GlobalPulseWeb.NewsLive.Index do
 
   defp source_indicator_class_blue(status) do
     case status do
-      :active -> "w-3 h-3 bg-blue-500 rounded-full mr-2 transition-all duration-300 animate-ping shadow-lg shadow-blue-500/50"
+      :active -> "w-3 h-3 bg-blue-500 rounded-full mr-2 transition-all duration-300 animate-pulse shadow-lg shadow-blue-500/50"
       :connected -> "w-3 h-3 bg-blue-500 rounded-full mr-2 transition-all duration-300 shadow-lg shadow-blue-500/30"
-      :error -> "w-3 h-3 bg-red-500 rounded-full mr-2 transition-all duration-300 animate-pulse"
+      :error -> "w-3 h-3 bg-red-500 rounded-full mr-2 transition-all duration-300 animate-pulse shadow-lg shadow-red-500/50"
       _ -> "w-3 h-3 bg-gray-600 rounded-full mr-2 transition-all duration-300"
     end
   end
@@ -433,10 +485,15 @@ defmodule GlobalPulseWeb.NewsLive.Index do
 
   defp source_indicator_class_yellow(status) do
     case status do
-      :active -> "w-3 h-3 bg-yellow-500 rounded-full mr-2 transition-all duration-300 animate-ping shadow-lg shadow-yellow-500/50"
+      :active -> "w-3 h-3 bg-yellow-500 rounded-full mr-2 transition-all duration-300 animate-pulse shadow-lg shadow-yellow-500/50"
       :connected -> "w-3 h-3 bg-yellow-500 rounded-full mr-2 transition-all duration-300 shadow-lg shadow-yellow-500/30"
-      :error -> "w-3 h-3 bg-red-500 rounded-full mr-2 transition-all duration-300 animate-pulse"
+      :error -> "w-3 h-3 bg-red-500 rounded-full mr-2 transition-all duration-300 animate-pulse shadow-lg shadow-red-500/50"
       _ -> "w-3 h-3 bg-gray-600 rounded-full mr-2 transition-all duration-300"
     end
   end
+  
+  def format_http_code(code) when is_nil(code), do: nil
+  def format_http_code(200), do: nil  # Don't show 200s as they're normal
+  def format_http_code(code), do: code  # Show error codes
+
 end

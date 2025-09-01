@@ -43,7 +43,10 @@ defmodule GlobalPulse.Services.NewsAggregator do
     guardian_politics: "https://www.theguardian.com/politics/rss",
     
     # Associated Press - Using Google News RSS workaround (rsshub.app unreliable)
-    ap_news: "https://news.google.com/rss/search?q=when:24h+allinurl:apnews.com&ceid=US:en&hl=en-US&gl=US"
+    ap_news: "https://news.google.com/rss/search?q=when:24h+allinurl:apnews.com&ceid=US:en&hl=en-US&gl=US",
+    
+    # El País - Leading Spanish-language newspaper from Spain (covers Latin America extensively)
+    el_pais: "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada"
   }
 
   # ============================================================================
@@ -321,9 +324,15 @@ defmodule GlobalPulse.Services.NewsAggregator do
   end
 
   defp analyze_sentiment(title, description \\ "") do
+    # Use fallback method for individual articles to avoid performance issues
+    # Comprehensive bias-aware analysis happens in NewsMonitor
+    analyze_sentiment_fallback(title, description)
+  end
+  
+  # Fallback to original method if bias-aware analyzer fails
+  defp analyze_sentiment_fallback(title, description) do
     text = String.downcase("#{title} #{description}")
     
-    # Enhanced sentiment analysis for global pulse detection
     positive_keywords = [
       "peace", "agreement", "resolution", "cooperation", "stability", "growth", 
       "success", "progress", "breakthrough", "improvement", "recovery", "unity"
@@ -335,19 +344,10 @@ defmodule GlobalPulse.Services.NewsAggregator do
       "sanctions", "dispute", "unrest", "instability", "emergency", "chaos"
     ]
     
-    neutral_keywords = [
-      "meeting", "discussion", "announcement", "statement", "report", "study",
-      "analysis", "review", "update", "news", "information", "data"
-    ]
-    
     positive_count = count_keywords(text, positive_keywords)
     negative_count = count_keywords(text, negative_keywords)
-    neutral_count = count_keywords(text, neutral_keywords)
-    
-    total = positive_count + negative_count + neutral_count
     
     cond do
-      total == 0 -> 0.0
       negative_count > positive_count -> -0.3 - (negative_count * 0.1)
       positive_count > negative_count -> 0.3 + (positive_count * 0.1)
       true -> 0.0
@@ -514,6 +514,7 @@ defmodule GlobalPulse.Services.NewsAggregator do
       :guardian_world -> :guardian
       :guardian_politics -> :guardian
       :ap_news -> :ap
+      :el_pais -> :el_pais
       "reddit_world_news" -> :reddit_worldnews
       "reddit_politics" -> :reddit_politics
       "reddit_news" -> :reddit_news

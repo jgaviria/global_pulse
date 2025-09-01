@@ -18,7 +18,8 @@ defmodule GlobalPulse.NewsMonitor do
       :social_media_trends,
       :sentiment_analysis,
       :last_update,
-      :anomalies
+      :anomalies,
+      :bias_report
     ]
   end
 
@@ -37,7 +38,8 @@ defmodule GlobalPulse.NewsMonitor do
       social_media_trends: [],
       sentiment_analysis: %{overall: 0.0, news: 0.0, social: 0.0},
       anomalies: [],
-      last_update: DateTime.utc_now()
+      last_update: DateTime.utc_now(),
+      bias_report: nil
     }
     
     {:ok, state}
@@ -261,7 +263,7 @@ defmodule GlobalPulse.NewsMonitor do
   # SENTIMENT ANALYSIS - Multi-source sentiment calculation
   # ============================================================================
   defp analyze_sentiment(state) do
-    news_sentiment = calculate_news_sentiment(state.news_articles)
+    {news_sentiment, bias_report} = calculate_news_sentiment_with_bias(state.news_articles)
     social_sentiment = calculate_social_sentiment(state.trending_topics)
     
     overall_sentiment = (news_sentiment * 0.6 + social_sentiment * 0.4)
@@ -275,21 +277,49 @@ defmodule GlobalPulse.NewsMonitor do
     }
     
     Logger.info("📰 NEWS MONITOR: Sentiment - Overall: #{sentiment_analysis.overall}, News: #{sentiment_analysis.news}, Social: #{sentiment_analysis.social}")
-    %{state | sentiment_analysis: sentiment_analysis}
+    %{state | sentiment_analysis: sentiment_analysis, bias_report: bias_report}
   end
 
-  defp calculate_news_sentiment(articles) when is_list(articles) do
+  defp calculate_news_sentiment_with_bias(articles) when is_list(articles) do
     if length(articles) > 0 do
-      total_sentiment = articles
-      |> Enum.map(fn article -> article.sentiment || 0.5 end)
-      |> Enum.sum()
-      
-      total_sentiment / length(articles)
+      # Use bias-aware sentiment analysis for comprehensive analysis
+      case GlobalPulse.Services.BiasAwareSentimentAnalyzer.analyze_articles_sentiment(articles) do
+        %{overall_sentiment: sentiment, bias_report: bias_report, confidence: confidence} ->
+          # Log bias awareness information
+          Logger.info("📰 NEWS MONITOR: Bias-aware sentiment analysis complete")
+          Logger.info("   Overall sentiment: #{sentiment} (confidence: #{Float.round(confidence, 2)})")
+          Logger.info("   Language distribution: #{inspect(bias_report.language_distribution)}")
+          Logger.info("   Source regions: #{inspect(bias_report.source_region_distribution)}")
+          
+          potential_biases = bias_report.potential_biases
+          if "balanced_coverage" not in potential_biases do
+            Logger.warning("   Potential biases detected: #{inspect(potential_biases)}")
+          end
+          
+          # Normalize sentiment from [-1,1] to [0,1] scale for compatibility
+          normalized_sentiment = (sentiment + 1.0) / 2.0
+          {normalized_sentiment, bias_report}
+          
+        _ ->
+          # Fallback to original method
+          sentiment = calculate_news_sentiment_fallback(articles)
+          {sentiment, nil}
+      end
     else
-      0.5  # Neutral when no data
+      {0.5, nil}  # Neutral when no data
     end
   end
-  defp calculate_news_sentiment(_), do: 0.5
+  defp calculate_news_sentiment_with_bias(_), do: {0.5, nil}
+  
+  # Fallback method for sentiment calculation
+  defp calculate_news_sentiment_fallback(articles) do
+    total_sentiment = articles
+    |> Enum.map(fn article -> article.sentiment || 0.0 end)
+    |> Enum.sum()
+    
+    # Normalize to [0,1] scale and add 0.5 offset
+    (total_sentiment / length(articles) + 1.0) / 2.0
+  end
 
   defp calculate_social_sentiment(topics) when is_list(topics) do
     if length(topics) > 0 do
