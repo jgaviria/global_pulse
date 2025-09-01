@@ -122,6 +122,22 @@ Hooks.InfiniteScroll = {
 Hooks.ProfessionalGauge = {
   mounted() {
     this.initGauge()
+    
+    // Listen for real-time gauge updates from LiveView
+    this.handleEvent("gauge_realtime_update", (payload) => {
+      if (this.gauge && payload.chart_id === this.el.id) {
+        const normalizedValue = this.normalizeValue(
+          payload.value, 
+          this.originalMin, 
+          this.originalMax
+        )
+        
+        // Smooth animated update
+        this.gauge.updateValue(normalizedValue, payload.animated !== false)
+        
+        console.log(`🎯 Real-time gauge update: ${normalizedValue.toFixed(3)} at ${new Date(payload.timestamp).toLocaleTimeString()}`)
+      }
+    })
   },
 
   updated() {

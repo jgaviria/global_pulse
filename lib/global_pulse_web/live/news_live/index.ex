@@ -12,9 +12,13 @@ defmodule GlobalPulseWeb.NewsLive.Index do
       Phoenix.PubSub.subscribe(GlobalPulse.PubSub, "sentiment_updates")
       Phoenix.PubSub.subscribe(GlobalPulse.PubSub, "news_pulse")
       Phoenix.PubSub.subscribe(GlobalPulse.PubSub, "source_status")  # Subscribe to real source status
+      Phoenix.PubSub.subscribe(GlobalPulse.PubSub, "gauge_updates")
       
       # Quick refresh for real-time feel
       :timer.send_interval(30_000, self(), :check_activity)  # Check activity every 30s
+      
+      # Start periodic sentiment updates for snappy gauge
+      Process.send_after(self(), :update_sentiment_pulse, 5_000) # Initial delay of 5 seconds
       
       # Send initial pulse
       send(self(), :pulse_animation)
@@ -76,7 +80,11 @@ defmodule GlobalPulseWeb.NewsLive.Index do
      |> assign(:language_stats, calculate_language_stats(all_articles))
      |> assign(:category_stats, calculate_category_stats(all_articles))
      |> assign(:bias_analysis, calculate_bias_analysis(all_articles))
-     |> assign(:last_pulse, DateTime.utc_now())}
+     |> assign(:last_pulse, DateTime.utc_now())
+     |> tap(fn _socket ->
+       # Initialize real-time sentiment on page load
+       update_real_time_sentiment(all_articles)
+     end)}
   end
 
   @impl true
@@ -111,6 +119,9 @@ defmodule GlobalPulseWeb.NewsLive.Index do
     filtered_articles = filter_articles(articles, socket.assigns.selected_category)
     articles_per_page = socket.assigns.articles_per_page
     displayed_articles = Enum.take(filtered_articles, articles_per_page)
+    
+    # Calculate real-time sentiment and update gauge
+    update_real_time_sentiment(articles)
     
     {:noreply,
      socket
@@ -894,5 +905,130 @@ defmodule GlobalPulseWeb.NewsLive.Index do
     end
   end
   defp format_bias_status(_), do: "Unknown"
+
+  # Real-time sentiment calculation and gauge updates
+  defp update_real_time_sentiment(articles) when is_list(articles) do
+    # Calculate weighted sentiment from news articles
+    sentiment_score = calculate_weighted_sentiment(articles)
+    
+    # Update the gauge data manager with new sentiment
+    GlobalPulse.Services.GaugeDataManager.update_value(
+      :sentiment, 
+      sentiment_score,
+      %{
+        article_count: length(articles),
+        timestamp: DateTime.utc_now(),
+        source: :news_analysis
+      }
+    )
+    
+    Logger.debug("🎯 Real-time sentiment updated: #{Float.round(sentiment_score, 3)} from #{length(articles)} articles")
+  end
+  defp update_real_time_sentiment(_), do: :ok
+
+  defp calculate_weighted_sentiment(articles) when is_list(articles) do
+    if length(articles) == 0, do: 0.5
+
+    # Calculate sentiment with recency and importance weighting
+    now = DateTime.utc_now()
+    
+    weighted_sentiments = articles
+    |> Enum.filter(&has_valid_sentiment/1)
+    |> Enum.map(fn article ->
+      base_sentiment = get_article_sentiment(article)
+      
+      # Calculate recency weight (articles in last 6 hours get more weight)
+      hours_old = DateTime.diff(now, article.published_at || now, :hour)
+      recency_weight = max(0.1, 1.0 - (hours_old / 24.0))
+      
+      # Calculate importance weight
+      importance_weight = get_importance_weight(article)
+      
+      # Combined weight
+      total_weight = recency_weight * importance_weight
+      
+      {base_sentiment, total_weight}
+    end)
+    
+    # Calculate weighted average
+    if length(weighted_sentiments) > 0 do
+      {total_sentiment, total_weight} = weighted_sentiments
+      |> Enum.reduce({0.0, 0.0}, fn {sentiment, weight}, {acc_sentiment, acc_weight} ->
+        {acc_sentiment + (sentiment * weight), acc_weight + weight}
+      end)
+      
+      if total_weight > 0 do
+        # Normalize to 0.0 to 1.0 range (0 = very negative, 0.5 = neutral, 1 = very positive)
+        normalized_sentiment = (total_sentiment / total_weight + 1.0) / 2.0
+        max(0.0, min(1.0, normalized_sentiment))
+      else
+        0.5 # Neutral fallback
+      end
+    else
+      0.5 # Neutral fallback
+    end
+  end
+
+  defp has_valid_sentiment(article) do
+    Map.has_key?(article, :sentiment) && is_number(article.sentiment)
+  end
+
+  defp get_article_sentiment(article) do
+    # Convert from -1.0 to 1.0 scale to usable range
+    raw_sentiment = article.sentiment || 0.0
+    
+    # Clamp to reasonable bounds
+    clamped_sentiment = max(-1.0, min(1.0, raw_sentiment))
+    
+    clamped_sentiment
+  end
+
+  defp get_importance_weight(article) do
+    # Base weight is 1.0
+    base_weight = 1.0
+    
+    # Boost weight for breaking news
+    breaking_weight = if Map.get(article, :is_breaking, false), do: 2.0, else: 1.0
+    
+    # Boost weight for high importance scores
+    importance_score = article.importance_score || 0.0
+    importance_weight = 1.0 + (importance_score * 0.5)
+    
+    # Boost weight for major news sources
+    source_weight = get_source_weight(article.source || "")
+    
+    base_weight * breaking_weight * importance_weight * source_weight
+  end
+
+  defp get_source_weight(source) do
+    source_lower = String.downcase(to_string(source))
+    
+    cond do
+      # Major international sources get higher weight
+      String.contains?(source_lower, ["reuters", "ap news", "bbc", "cnn"]) -> 1.5
+      
+      # Major national sources
+      String.contains?(source_lower, ["guardian", "nytimes", "wsj", "npr"]) -> 1.3
+      
+      # Regional sources
+      String.contains?(source_lower, ["fox", "cbs", "nbc", "abc"]) -> 1.1
+      
+      # Default weight
+      true -> 1.0
+    end
+  end
+
+  # Add periodic sentiment updates
+  def handle_info(:update_sentiment_pulse, socket) do
+    # Update sentiment from current articles every 30 seconds
+    if length(socket.assigns.all_articles) > 0 do
+      update_real_time_sentiment(socket.assigns.all_articles)
+    end
+    
+    # Schedule next update
+    Process.send_after(self(), :update_sentiment_pulse, 30_000)
+    
+    {:noreply, socket}
+  end
 
 end

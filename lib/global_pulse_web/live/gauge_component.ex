@@ -52,7 +52,7 @@ defmodule GlobalPulseWeb.GaugeComponent do
       {:noreply, 
        socket
        |> assign(:gauge_data, gauge_data)
-       |> push_event("update_gauge", %{
+       |> push_event("gauge_realtime_update", %{
          chart_id: socket.assigns.chart_id,
          value: gauge_data.smoothed_value,
          baseline_7d: gauge_data.baseline_7d,
@@ -60,7 +60,9 @@ defmodule GlobalPulseWeb.GaugeComponent do
          trend: gauge_data.trend_direction,
          trend_strength: gauge_data.trend_strength,
          confidence: gauge_data.confidence,
-         colors: gauge_colors(gauge_data)
+         colors: gauge_colors(gauge_data),
+         animated: true,
+         timestamp: DateTime.to_unix(gauge_data.last_updated, :millisecond)
        })
       }
     else

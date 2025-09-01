@@ -602,8 +602,14 @@ export class ProfessionalGauge {
   }
 
   updateValue(newValue, animated = true) {
+    const previousValue = this.targetValue;
     this.targetValue = Math.max(this.options.minValue, 
                                Math.min(this.options.maxValue, newValue));
+    
+    // Add pulse effect for significant changes
+    if (Math.abs(this.targetValue - previousValue) > 0.05) {
+      this.addUpdatePulse();
+    }
     
     if (!animated) {
       this.currentValue = this.targetValue;
@@ -613,6 +619,35 @@ export class ProfessionalGauge {
         this.updateArcHighlight();
       } else {
         this.updateFallbackGauge();
+      }
+    }
+  }
+
+  addUpdatePulse() {
+    // Add a subtle pulse to the particle system
+    if (this.colorLight) {
+      const originalIntensity = this.colorLight.intensity;
+      this.colorLight.intensity = originalIntensity * 1.5;
+      
+      setTimeout(() => {
+        if (this.colorLight) {
+          this.colorLight.intensity = originalIntensity;
+        }
+      }, 200);
+    }
+    
+    // Add pulse effect to fallback gauge
+    if (!this.initialized) {
+      const container = this.container.querySelector('.gauge-container');
+      if (container) {
+        container.style.transform = 'scale(1.02)';
+        container.style.transition = 'transform 0.2s ease';
+        
+        setTimeout(() => {
+          if (container) {
+            container.style.transform = 'scale(1)';
+          }
+        }, 200);
       }
     }
   }
@@ -702,12 +737,21 @@ export class ProfessionalGauge {
     
     const time = Date.now() * 0.001;
     
-    // Smooth value interpolation
+    // Smooth value interpolation with faster response for real-time feel
     if (Math.abs(this.currentValue - this.targetValue) > 0.001) {
-      this.currentValue += (this.targetValue - this.currentValue) * 0.05;
-      this.updateNeedle(this.currentValue);
-      this.updateValueDisplay();
-      this.updateArcHighlight();
+      // Use different easing based on how far we need to move
+      const distance = Math.abs(this.targetValue - this.currentValue);
+      const easing = distance > 0.1 ? 0.08 : 0.12; // Faster for small changes
+      
+      this.currentValue += (this.targetValue - this.currentValue) * easing;
+      
+      if (this.initialized) {
+        this.updateNeedle(this.currentValue);
+        this.updateValueDisplay();
+        this.updateArcHighlight();
+      } else {
+        this.updateFallbackGauge();
+      }
     }
     
     // Animate particles
