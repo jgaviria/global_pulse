@@ -2,6 +2,7 @@ import "phoenix_html"
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
+import ApexCharts from "apexcharts"
 import {PoliticalLive} from "./political_live"
 import {SentimentChart} from "./sentiment_chart"
 import {SimpleChart} from "./simple_chart"
@@ -68,6 +69,301 @@ Hooks.SolarWindIntensityBar = SolarWindIntensityBar
 
 // Earthquake Globe Hook
 Hooks.EarthquakeGlobe = EarthquakeGlobe
+
+// Infinite Scroll Hook
+Hooks.InfiniteScroll = {
+  mounted() {
+    this.observer = new IntersectionObserver(
+      entries => {
+        const target = entries[0]
+        if (target.isIntersecting) {
+          this.pushEvent("load_more_articles", {})
+        }
+      },
+      {
+        root: this.el,
+        rootMargin: '100px',
+        threshold: 0.1
+      }
+    )
+    
+    // Observe the load-more-trigger element when it exists
+    this.observeLoadTrigger()
+  },
+  
+  updated() {
+    // Re-observe the trigger after DOM updates
+    this.observeLoadTrigger()
+  },
+  
+  destroyed() {
+    if (this.observer) {
+      this.observer.disconnect()
+    }
+  },
+  
+  observeLoadTrigger() {
+    // Stop observing previous trigger
+    if (this.currentTarget) {
+      this.observer.unobserve(this.currentTarget)
+    }
+    
+    // Find and observe new trigger
+    const trigger = this.el.querySelector('#load-more-trigger')
+    if (trigger) {
+      this.observer.observe(trigger)
+      this.currentTarget = trigger
+    }
+  }
+}
+
+// ApexCharts Gauge Hook
+Hooks.GaugeChart = {
+  mounted() {
+    this.initChart()
+  },
+  
+  updated() {
+    // Handle real-time updates from LiveView
+    this.handleUpdate()
+  },
+  
+  destroyed() {
+    if (this.chart) {
+      this.chart.destroy()
+    }
+  },
+  
+  initChart() {
+    const category = this.el.dataset.category
+    const value = parseFloat(this.el.dataset.value) || 0
+    const baseline7d = parseFloat(this.el.dataset.baseline7d) || 0
+    const baseline30d = parseFloat(this.el.dataset.baseline30d) || 0
+    const minValue = parseFloat(this.el.dataset.minValue) || 0
+    const maxValue = parseFloat(this.el.dataset.maxValue) || 100
+    const colors = JSON.parse(this.el.dataset.colors || '{}')
+    const confidence = parseFloat(this.el.dataset.confidence) || 0.5
+    
+    // Calculate gauge range and colors based on category
+    const gaugeColors = this.getGaugeColors(category, colors)
+    const {plotBands, valueDisplay} = this.getGaugeConfig(category, value, baseline7d, baseline30d, minValue, maxValue)
+    
+    const options = {
+      series: [Math.round((value - minValue) / (maxValue - minValue) * 100)],
+      chart: {
+        height: 250,
+        type: 'radialBar',
+        background: 'transparent',
+        animations: {
+          enabled: true,
+          easing: 'easeinout',
+          speed: 800,
+          animateGradually: {
+            enabled: true,
+            delay: 150
+          },
+          dynamicAnimation: {
+            enabled: true,
+            speed: 350
+          }
+        }
+      },
+      plotOptions: {
+        radialBar: {
+          offsetY: 0,
+          startAngle: -135,
+          endAngle: 135,
+          hollow: {
+            margin: 5,
+            size: '65%',
+            background: 'transparent'
+          },
+          dataLabels: {
+            name: {
+              show: true,
+              fontSize: '14px',
+              color: '#9CA3AF',
+              offsetY: -10
+            },
+            value: {
+              show: true,
+              fontSize: '20px',
+              fontWeight: 'bold',
+              color: colors.text || '#F3F4F6',
+              offsetY: 5,
+              formatter: function(val) {
+                return valueDisplay
+              }
+            }
+          },
+          track: {
+            background: colors.background || '#374151',
+            strokeWidth: '100%',
+            margin: 5,
+            opacity: 0.4
+          }
+        }
+      },
+      fill: {
+        type: 'gradient',
+        gradient: {
+          shade: 'dark',
+          type: 'horizontal',
+          shadeIntensity: 0.5,
+          gradientToColors: [gaugeColors.end],
+          inverseColors: true,
+          opacityFrom: 1,
+          opacityTo: 1,
+          stops: [0, 100]
+        }
+      },
+      colors: [gaugeColors.start],
+      stroke: {
+        dashArray: 4,
+        lineCap: 'round'
+      },
+      labels: [category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())],
+      responsive: [{
+        breakpoint: 480,
+        options: {
+          chart: {
+            height: 200
+          }
+        }
+      }]
+    }
+    
+    this.chart = new ApexCharts(this.el, options)
+    this.chart.render()
+    
+    // Add baseline indicators
+    this.addBaselineIndicators(baseline7d, baseline30d, minValue, maxValue, colors)
+  },
+  
+  handleUpdate() {
+    // This will be called when the component receives update_gauge event
+    const value = parseFloat(this.el.dataset.value) || 0
+    const minValue = parseFloat(this.el.dataset.minValue) || 0
+    const maxValue = parseFloat(this.el.dataset.maxValue) || 100
+    const category = this.el.dataset.category
+    
+    const percentage = Math.round((value - minValue) / (maxValue - minValue) * 100)
+    const valueDisplay = this.formatDisplayValue(value, category)
+    
+    if (this.chart) {
+      this.chart.updateSeries([percentage])
+      // Update the value display
+      this.chart.updateOptions({
+        plotOptions: {
+          radialBar: {
+            dataLabels: {
+              value: {
+                formatter: function(val) {
+                  return valueDisplay
+                }
+              }
+            }
+          }
+        }
+      })
+    }
+  },
+  
+  getGaugeColors(category, colors) {
+    switch(category) {
+      case 'sentiment':
+        return {
+          start: '#EF4444', // Red
+          end: '#10B981'    // Green
+        }
+      case 'financial':
+        return {
+          start: '#8B5CF6', // Purple
+          end: '#3B82F6'    // Blue
+        }
+      case 'natural_events':
+        return {
+          start: '#10B981', // Green (low severity is good)
+          end: '#EF4444'    // Red (high severity is bad)
+        }
+      case 'social_trends':
+        return {
+          start: '#6B7280', // Gray
+          end: '#EC4899'    // Pink
+        }
+      default:
+        return {
+          start: colors.primary || '#3B82F6',
+          end: colors.accent || '#10B981'
+        }
+    }
+  },
+  
+  getGaugeConfig(category, value, baseline7d, baseline30d, minValue, maxValue) {
+    let valueDisplay, plotBands
+    
+    switch(category) {
+      case 'sentiment':
+        if (value > 0.7) {
+          valueDisplay = `${Math.round(value * 100)}% Positive`
+        } else if (value > 0.3) {
+          valueDisplay = `${Math.round(value * 100)}% Neutral`
+        } else {
+          valueDisplay = `${Math.round(value * 100)}% Negative`
+        }
+        break
+      default:
+        valueDisplay = `${value.toFixed(1)}`
+    }
+    
+    plotBands = [
+      {
+        from: baseline7d,
+        to: baseline30d,
+        color: 'rgba(59, 130, 246, 0.2)',
+        label: '7-30d Range'
+      }
+    ]
+    
+    return { plotBands, valueDisplay }
+  },
+  
+  formatDisplayValue(value, category) {
+    switch(category) {
+      case 'sentiment':
+        if (value > 0.7) {
+          return `${Math.round(value * 100)}% Positive`
+        } else if (value > 0.3) {
+          return `${Math.round(value * 100)}% Neutral`
+        } else {
+          return `${Math.round(value * 100)}% Negative`
+        }
+      default:
+        return `${value.toFixed(1)}`
+    }
+  },
+  
+  addBaselineIndicators(baseline7d, baseline30d, minValue, maxValue, colors) {
+    // Add subtle baseline indicator lines using CSS
+    const baseline7dPercent = (baseline7d - minValue) / (maxValue - minValue) * 100
+    const baseline30dPercent = (baseline30d - minValue) / (maxValue - minValue) * 100
+    
+    // Create baseline indicator elements
+    const indicator = document.createElement('div')
+    indicator.innerHTML = `
+      <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div class="text-xs text-gray-400 mt-16">
+          <div class="flex space-x-4">
+            <span class="bg-blue-600 w-2 h-1 inline-block rounded mr-1"></span>7d: ${baseline7d.toFixed(1)}
+            <span class="bg-purple-600 w-2 h-1 inline-block rounded mr-1"></span>30d: ${baseline30d.toFixed(1)}
+          </div>
+        </div>
+      </div>
+    `
+    indicator.className = 'relative'
+    this.el.appendChild(indicator)
+  }
+}
 
 Hooks.CryptoChart = {
   mounted() {
