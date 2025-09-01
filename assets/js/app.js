@@ -19,6 +19,7 @@ import {SolarWindAnimation} from "./solar_wind_animation"
 import {KPIntensityBar} from "./kp_intensity_bar"
 import {SolarWindIntensityBar} from "./solar_wind_intensity_bar"
 import {EarthquakeGlobe} from "./earthquake_globe_globegl"
+import {ProfessionalGauge} from "./professional_gauge"
 
 // Make Chart.js available globally if it exists
 if (typeof Chart !== 'undefined') {
@@ -114,6 +115,69 @@ Hooks.InfiniteScroll = {
       this.observer.observe(trigger)
       this.currentTarget = trigger
     }
+  }
+}
+
+// Professional 3D Gauge Hook
+Hooks.ProfessionalGauge = {
+  mounted() {
+    this.initGauge()
+  },
+
+  updated() {
+    this.handleUpdate()
+  },
+
+  destroyed() {
+    if (this.gauge) {
+      this.gauge.destroy()
+    }
+  },
+
+  initGauge() {
+    const category = this.el.dataset.category
+    const value = parseFloat(this.el.dataset.value) || 0
+    const minValue = parseFloat(this.el.dataset.minValue) || 0
+    const maxValue = parseFloat(this.el.dataset.maxValue) || 100
+    const colors = JSON.parse(this.el.dataset.colors || '{}')
+    const confidence = parseFloat(this.el.dataset.confidence) || 0.5
+
+    // Create unique ID for this gauge
+    const gaugeId = `professional-gauge-${Math.random().toString(36).substr(2, 9)}`
+    this.el.innerHTML = `<div id="${gaugeId}" style="width: 100%; height: 100%; position: relative;"></div>`
+    
+    // Initialize professional gauge
+    this.gauge = new ProfessionalGauge(gaugeId, {
+      value: this.normalizeValue(value, minValue, maxValue),
+      minValue: 0,
+      maxValue: 1,
+      category: category,
+      colors: colors,
+      confidence: confidence,
+      animated: true,
+      particles: true,
+      interactive: true
+    })
+    
+    // Store original range for updates
+    this.originalMin = minValue
+    this.originalMax = maxValue
+  },
+
+  handleUpdate() {
+    if (!this.gauge) return
+
+    const value = parseFloat(this.el.dataset.value) || 0
+    const minValue = parseFloat(this.el.dataset.minValue) || this.originalMin
+    const maxValue = parseFloat(this.el.dataset.maxValue) || this.originalMax
+    
+    // Update gauge with normalized value
+    const normalizedValue = this.normalizeValue(value, minValue, maxValue)
+    this.gauge.updateValue(normalizedValue, true)
+  },
+
+  normalizeValue(value, min, max) {
+    return Math.max(0, Math.min(1, (value - min) / (max - min)))
   }
 }
 
