@@ -105,7 +105,7 @@ defmodule GlobalPulse.NewsMonitor do
     articles = case GlobalPulse.Services.NewsAggregator.fetch_all_news() do
       {:ok, news_articles} ->
         Logger.info("📰 NEWS MONITOR: Refreshed with #{length(news_articles)} articles")
-        news_articles |> Enum.take(200)  # Increased limit for more data points
+        news_articles |> Enum.take(1000)  # Increased limit for more data points
       {:error, reason} ->
         Logger.warning("📰 NEWS MONITOR: News fetch failed: #{inspect(reason)}")
         state.news_articles || []

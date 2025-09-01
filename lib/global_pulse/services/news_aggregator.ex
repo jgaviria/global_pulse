@@ -23,9 +23,9 @@ defmodule GlobalPulse.Services.NewsAggregator do
     bbc_politics: "https://feeds.bbci.co.uk/news/politics/rss.xml", 
     bbc_business: "https://feeds.bbci.co.uk/news/business/rss.xml",
     
-    # Reuters International - Business and world affairs
-    reuters_world: "https://www.reuters.com/news/world",
-    reuters_politics: "https://www.reuters.com/news/us", 
+    # Reuters International - Using Google News RSS workaround (Reuters discontinued RSS in 2020)
+    reuters_world: "https://news.google.com/rss/search?q=when:24h+allinurl:reuters.com+world&ceid=US:en&hl=en-US&gl=US",
+    reuters_politics: "https://news.google.com/rss/search?q=when:24h+allinurl:reuters.com+politics&ceid=US:en&hl=en-US&gl=US", 
     
     # NPR News - US public radio with quality journalism  
     npr_news: "https://feeds.npr.org/1001/rss.xml",
@@ -42,8 +42,8 @@ defmodule GlobalPulse.Services.NewsAggregator do
     guardian_world: "https://www.theguardian.com/world/rss",
     guardian_politics: "https://www.theguardian.com/politics/rss",
     
-    # Associated Press - Wire service news
-    ap_news: "https://rsshub.app/ap/topics/apf-topnews"
+    # Associated Press - Using Google News RSS workaround (rsshub.app unreliable)
+    ap_news: "https://news.google.com/rss/search?q=when:24h+allinurl:apnews.com&ceid=US:en&hl=en-US&gl=US"
   }
 
   # ============================================================================
@@ -103,7 +103,7 @@ defmodule GlobalPulse.Services.NewsAggregator do
     |> add_importance_scores()
     |> add_global_pulse_metadata()
     |> Enum.sort_by(& &1.importance_score, :desc)
-    |> Enum.take(50)  # Top 50 most important articles
+    |> Enum.take(1000)  # Top 1000 most important articles
     
     fetch_time = System.monotonic_time(:millisecond) - start_time
     Logger.info("✅ Successfully fetched #{length(all_articles)} articles in #{fetch_time}ms")
@@ -141,19 +141,26 @@ defmodule GlobalPulse.Services.NewsAggregator do
         {:ok, %{status_code: 200, body: body}} ->
           articles = parse_rss_feed(body, source)
           Logger.debug("📰 #{source}: #{length(articles)} articles")
+          # Broadcast success status with HTTP code
+          broadcast_source_status(source, :connected, 200)
           {:ok, articles}
           
         {:ok, %{status_code: status}} ->
           Logger.warning("🚨 #{source} returned status #{status}")
+          # Broadcast error status with HTTP code
+          broadcast_source_status(source, :error, status)
           {:ok, []}
           
         {:error, reason} ->
           Logger.warning("💥 #{source} failed: #{inspect(reason)}")
+          # Broadcast error status for connection failures
+          broadcast_source_status(source, :error, nil)
           {:ok, []}
       end
     rescue
       e ->
         Logger.error("❌ #{source} crashed: #{inspect(e)}")
+        broadcast_source_status(source, :error, nil)
         {:ok, []}
     end
   end
@@ -166,24 +173,32 @@ defmodule GlobalPulse.Services.NewsAggregator do
             {:ok, %{"data" => %{"children" => posts}}} ->
               articles = parse_reddit_posts(posts, source)
               Logger.debug("🔴 #{source}: #{length(articles)} posts")
+              # Broadcast success status with HTTP code
+              broadcast_source_status("reddit_#{source}", :connected, 200)
               {:ok, articles}
               
             {:error, _} ->
               Logger.warning("🔴 #{source}: Invalid JSON")
+              broadcast_source_status("reddit_#{source}", :error, nil)
               {:ok, []}
           end
           
         {:ok, %{status_code: status}} ->
           Logger.warning("🚨 Reddit #{source} returned status #{status}")
+          # Broadcast error status with HTTP code
+          broadcast_source_status("reddit_#{source}", :error, status)
           {:ok, []}
           
         {:error, reason} ->
           Logger.warning("💥 Reddit #{source} failed: #{inspect(reason)}")
+          # Broadcast error status for connection failures
+          broadcast_source_status("reddit_#{source}", :error, nil)
           {:ok, []}
       end
     rescue
       e ->
         Logger.error("❌ Reddit #{source} crashed: #{inspect(e)}")
+        broadcast_source_status("reddit_#{source}", :error, nil)
         {:ok, []}
     end
   end
@@ -467,6 +482,45 @@ defmodule GlobalPulse.Services.NewsAggregator do
     end
   end
   defp safe_parse_reddit_timestamp(_), do: DateTime.utc_now()
+
+  # Broadcast source status to LiveView
+  defp broadcast_source_status(source, status, http_code \\ nil) do
+    # Map source names to LiveView atoms
+    mapped_source = map_source_to_liveview(source)
+    
+    Phoenix.PubSub.broadcast(
+      GlobalPulse.PubSub,
+      "source_status",
+      {:source_status_update, %{
+        source: mapped_source, 
+        status: status,
+        http_code: http_code
+      }}
+    )
+  end
+
+  defp map_source_to_liveview(source) do
+    case source do
+      :bbc_world -> :bbc
+      :bbc_politics -> :bbc_politics
+      :bbc_business -> :bbc
+      :reuters_world -> :reuters
+      :reuters_politics -> :reuters
+      :npr_news -> :npr
+      :npr_politics -> :npr
+      :cnn_world -> :cnn
+      :cnn_politics -> :cnn
+      :aljazeera -> :aljazeera
+      :guardian_world -> :guardian
+      :guardian_politics -> :guardian
+      :ap_news -> :ap
+      "reddit_world_news" -> :reddit_worldnews
+      "reddit_politics" -> :reddit_politics
+      "reddit_news" -> :reddit_news
+      "reddit_geopolitics" -> :reddit_geopolitics
+      _ -> source
+    end
+  end
 
   defp detect_geographic_scope(article) do
     text = String.downcase("#{article.title} #{article.description}")
