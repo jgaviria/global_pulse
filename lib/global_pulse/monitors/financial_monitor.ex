@@ -286,7 +286,105 @@ defmodule GlobalPulse.FinancialMonitor do
         timestamp: DateTime.utc_now()
       }}
     )
+    
+    # Calculate and update market stress gauge
+    update_market_stress_gauge(state)
+    
     state
+  end
+  
+  defp update_market_stress_gauge(state) do
+    # Calculate market stress from financial indicators
+    market_stress = calculate_market_stress_from_state(state)
+    
+    # Update the gauge data manager
+    GlobalPulse.Services.GaugeDataManager.update_value(
+      :financial,
+      market_stress,
+      %{
+        crypto_volatility: calculate_crypto_volatility(state.crypto),
+        stock_momentum: calculate_stock_momentum(state.stocks),
+        anomaly_count: length(state.anomalies || []),
+        timestamp: DateTime.utc_now(),
+        source: :financial_monitor
+      }
+    )
+  end
+  
+  defp calculate_market_stress_from_state(state) do
+    # Calculate stress based on price changes and anomalies
+    crypto_stress = calculate_crypto_stress(state.crypto)
+    stock_stress = calculate_stock_stress(state.stocks)
+    anomaly_stress = min(length(state.anomalies || []) * 5, 20)
+    
+    # Weighted average
+    stress = (crypto_stress * 0.4) + (stock_stress * 0.4) + (anomaly_stress * 0.2)
+    
+    # Normalize to 0-100 range
+    stress
+    |> max(0.0)
+    |> min(100.0)
+  end
+  
+  defp calculate_crypto_volatility(crypto) do
+    if map_size(crypto) > 0 do
+      changes = crypto
+        |> Enum.map(fn {_, data} -> abs(data[:change_percent_24h] || 0) end)
+      
+      Enum.sum(changes) / map_size(crypto)
+    else
+      0.0
+    end
+  end
+  
+  defp calculate_stock_momentum(stocks) do
+    if map_size(stocks) > 0 do
+      momentum = stocks
+        |> Enum.map(fn {_, data} -> data[:change_percent_24h] || 0 end)
+        |> Enum.sum()
+      
+      momentum / map_size(stocks)
+    else
+      0.0
+    end
+  end
+  
+  defp calculate_crypto_stress(crypto) do
+    if map_size(crypto) > 0 do
+      # High negative changes = high stress
+      negative_changes = crypto
+        |> Enum.filter(fn {_, data} -> (data[:change_percent_24h] || 0) < 0 end)
+        |> Enum.map(fn {_, data} -> abs(data[:change_percent_24h]) end)
+      
+      if length(negative_changes) > 0 do
+        avg_negative = Enum.sum(negative_changes) / length(negative_changes)
+        # Scale to 0-100: -10% change = 100 stress
+        min(avg_negative * 10, 100)
+      else
+        0.0
+      end
+    else
+      50.0
+    end
+  end
+  
+  defp calculate_stock_stress(stocks) do
+    if map_size(stocks) > 0 do
+      # Similar calculation for stocks
+      negative_changes = stocks
+        |> Enum.filter(fn {_, data} -> (data[:change_percent_24h] || 0) < 0 end)
+        |> Enum.map(fn {_, data} -> abs(data[:change_percent_24h]) end)
+      
+      if length(negative_changes) > 0 do
+        avg_negative = Enum.sum(negative_changes) / length(negative_changes)
+        # Scale to 0-100: -5% change = 100 stress (stocks are less volatile)
+        min(avg_negative * 20, 100)
+      else
+        0.0
+      end
+    else
+      50.0
+    end
   end
 
   defp schedule_poll do

@@ -1,6 +1,27 @@
 <div class="space-y-6">
-  <!-- Market Overview Cards -->
-  <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+  <!-- Market Overview with Gauge -->
+  <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
+    <!-- Market Stress Gauge -->
+    <div class="lg:col-span-1">
+      <div class="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
+        <h3 class="text-sm font-medium text-gray-300 mb-3 flex items-center">
+          <svg class="h-4 w-4 text-yellow-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+          </svg>
+          Market Stress
+        </h3>
+        <div class="h-80 mb-6 relative overflow-hidden">
+          <.live_component 
+            module={GlobalPulseWeb.GaugeComponent}
+            id="financial-stress-gauge"
+            category={:financial}
+          />
+        </div>
+      </div>
+    </div>
+    
+    <!-- Existing Market Overview Cards -->
+    <div class="lg:col-span-4 grid grid-cols-1 md:grid-cols-4 gap-4">
     <div class="bg-gray-800 rounded-lg p-4 border border-gray-700" phx-hook="FearGreedChart" id="fear-greed-chart">
       <div class="flex items-center justify-between mb-2">
         <span class="text-sm text-gray-400">Fear & Greed Index</span>
@@ -72,6 +93,7 @@
         <%= Enum.count(@crypto) + Enum.count(@stocks) %>
       </div>
       <div class="text-xs text-gray-500 mt-1">Monitored Assets</div>
+    </div>
     </div>
   </div>
 

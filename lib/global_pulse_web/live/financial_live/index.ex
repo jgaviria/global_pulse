@@ -6,8 +6,12 @@ defmodule GlobalPulseWeb.FinancialLive.Index do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(GlobalPulse.PubSub, "financial_data")
       Phoenix.PubSub.subscribe(GlobalPulse.PubSub, "anomalies")
+      Phoenix.PubSub.subscribe(GlobalPulse.PubSub, "gauge_updates")
       
       :timer.send_interval(5000, self(), :fetch_data)
+      
+      # Start periodic market stress calculations
+      Process.send_after(self(), :update_market_stress, 10_000)
     end
     
     initial_data = fetch_financial_data()
@@ -60,6 +64,33 @@ defmodule GlobalPulseWeb.FinancialLive.Index do
   def handle_info({:new_anomalies, anomalies}, socket) do
     financial_anomalies = Enum.filter(anomalies, &(&1[:category] in ["stocks", "crypto", "forex"]))
     {:noreply, assign(socket, :anomaly_count, length(financial_anomalies))}
+  end
+  
+  def handle_info({:gauge_update, :financial, _gauge_data}, socket) do
+    # Gauge component will handle its own updates via PubSub
+    {:noreply, socket}
+  end
+  
+  def handle_info(:update_market_stress, socket) do
+    # Calculate market stress from current financial indicators
+    market_stress = calculate_market_stress(socket.assigns)
+    
+    # Update the gauge data manager
+    GlobalPulse.Services.GaugeDataManager.update_value(
+      :financial,
+      market_stress,
+      %{
+        fear_greed: socket.assigns.market_indicators.fear_greed_index,
+        volatility: socket.assigns.market_indicators.volatility_index,
+        timestamp: DateTime.utc_now(),
+        source: :financial_monitor
+      }
+    )
+    
+    # Schedule next update
+    Process.send_after(self(), :update_market_stress, 30_000)
+    
+    {:noreply, socket}
   end
   
   @impl true
@@ -215,6 +246,38 @@ defmodule GlobalPulseWeb.FinancialLive.Index do
       "SPY-QQQ" => 0.92,
       "Gold-USD" => -0.45
     }
+  end
+  
+  defp calculate_market_stress(assigns) do
+    # Market stress is a composite of fear/greed index and volatility
+    # Scale: 0 (low stress/greed) to 100 (high stress/fear)
+    
+    fear_greed = assigns.market_indicators.fear_greed_index || 50
+    volatility = assigns.market_indicators.volatility_index || 20
+    
+    # Invert fear/greed (0 = extreme fear, 100 = extreme greed)
+    # So we want: 0 fear/greed = 100 stress, 100 fear/greed = 0 stress
+    inverted_fear_greed = 100 - fear_greed
+    
+    # Weight volatility more during extreme conditions
+    volatility_weight = if volatility > 30, do: 0.6, else: 0.4
+    fear_weight = 1.0 - volatility_weight
+    
+    # Calculate weighted stress
+    stress = (inverted_fear_greed * fear_weight) + (volatility * volatility_weight)
+    
+    # Add additional stress factors if available
+    stress = if assigns[:anomaly_count] && assigns.anomaly_count > 0 do
+      # Each anomaly adds 2 points of stress (max 10)
+      stress + min(assigns.anomaly_count * 2, 10)
+    else
+      stress
+    end
+    
+    # Normalize to 0-100 range
+    stress
+    |> max(0.0)
+    |> min(100.0)
   end
   
   defp format_price(value) when is_number(value) do
