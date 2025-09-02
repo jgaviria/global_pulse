@@ -74,46 +74,62 @@ Hooks.EarthquakeGlobe = EarthquakeGlobe
 // Infinite Scroll Hook
 Hooks.InfiniteScroll = {
   mounted() {
-    this.observer = new IntersectionObserver(
-      entries => {
-        const target = entries[0]
-        if (target.isIntersecting) {
-          this.pushEvent("load_more_articles", {})
+    try {
+      this.observer = new IntersectionObserver(
+        entries => {
+          const target = entries[0]
+          if (target.isIntersecting) {
+            this.pushEvent("load_more_articles", {})
+          }
+        },
+        {
+          root: this.el,
+          rootMargin: '100px',
+          threshold: 0.1
         }
-      },
-      {
-        root: this.el,
-        rootMargin: '100px',
-        threshold: 0.1
-      }
-    )
-    
-    // Observe the load-more-trigger element when it exists
-    this.observeLoadTrigger()
+      )
+      
+      // Observe the load-more-trigger element when it exists
+      this.observeLoadTrigger()
+    } catch (error) {
+      console.error("Error in InfiniteScroll mounted:", error)
+    }
   },
   
   updated() {
-    // Re-observe the trigger after DOM updates
-    this.observeLoadTrigger()
+    try {
+      // Re-observe the trigger after DOM updates
+      this.observeLoadTrigger()
+    } catch (error) {
+      console.error("Error in InfiniteScroll updated:", error)
+    }
   },
   
   destroyed() {
-    if (this.observer) {
-      this.observer.disconnect()
+    try {
+      if (this.observer) {
+        this.observer.disconnect()
+      }
+    } catch (error) {
+      console.error("Error in InfiniteScroll destroyed:", error)
     }
   },
   
   observeLoadTrigger() {
-    // Stop observing previous trigger
-    if (this.currentTarget) {
-      this.observer.unobserve(this.currentTarget)
-    }
-    
-    // Find and observe new trigger
-    const trigger = this.el.querySelector('#load-more-trigger')
-    if (trigger) {
-      this.observer.observe(trigger)
-      this.currentTarget = trigger
+    try {
+      // Stop observing previous trigger
+      if (this.currentTarget && this.observer) {
+        this.observer.unobserve(this.currentTarget)
+      }
+      
+      // Find and observe new trigger
+      const trigger = this.el.querySelector('#load-more-trigger')
+      if (trigger && this.observer) {
+        this.observer.observe(trigger)
+        this.currentTarget = trigger
+      }
+    } catch (error) {
+      console.error("Error in observeLoadTrigger:", error)
     }
   }
 }
@@ -145,8 +161,12 @@ Hooks.ProfessionalGauge = {
   },
 
   destroyed() {
-    if (this.gauge) {
-      this.gauge.destroy()
+    if (this.gauge && typeof this.gauge.destroy === 'function') {
+      try {
+        this.gauge.destroy()
+      } catch (error) {
+        console.error("Error destroying gauge:", error)
+      }
     }
   },
 

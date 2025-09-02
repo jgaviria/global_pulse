@@ -835,10 +835,10 @@ export class ProfessionalGauge {
     
     if (this.renderer) {
       this.renderer.dispose();
-    }
-    
-    if (this.container && this.renderer.domElement) {
-      this.container.removeChild(this.renderer.domElement);
+      
+      if (this.container && this.renderer.domElement) {
+        this.container.removeChild(this.renderer.domElement);
+      }
     }
   }
 }

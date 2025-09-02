@@ -1,0 +1,499 @@
+<div class="container mx-auto px-6 py-8">
+  <!-- Header with Live Indicator -->
+  <div class="flex justify-between items-center mb-8">
+    <div>
+      <h1 class="text-3xl font-bold text-white mb-2 flex items-center">
+        Global News Feed
+        <%= if @new_articles_count > 0 do %>
+          <span class="ml-2 px-2 py-1 text-xs bg-blue-500/20 text-blue-400 rounded-full animate-pulse">
+            +<%= @new_articles_count %> new
+          </span>
+        <% end %>
+      </h1>
+      <p class="text-gray-400">Real-time news aggregation from multiple sources</p>
+    </div>
+    
+    <div class="flex items-center space-x-4">
+      <div class="text-sm text-gray-400">
+        Last updated: <span class="text-white"><%= format_time(@last_update) %></span>
+      </div>
+      
+      <button 
+        phx-click="refresh_news"
+        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center space-x-2"
+        disabled={@loading}
+      >
+        <%= if @loading do %>
+          <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        <% else %>
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+        <% end %>
+        <span>Refresh</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Quick Stats Bar -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-gray-800 p-4 rounded-lg">
+      <p class="text-gray-400 text-xs">Total Articles</p>
+      <p class="text-xl font-bold text-white"><%= @news_summary.total_articles %></p>
+    </div>
+    <div class="bg-gray-800 p-4 rounded-lg">
+      <p class="text-gray-400 text-xs">Breaking News</p>
+      <p class="text-xl font-bold text-red-400"><%= length(@breaking_news) %></p>
+    </div>
+    <div class="bg-gray-800 p-4 rounded-lg">
+      <p class="text-gray-400 text-xs">Active Sources</p>
+      <p class="text-xl font-bold text-green-400"><%= map_size(@live_sources) %></p>
+    </div>
+    <div class="bg-gray-800 p-4 rounded-lg">
+      <p class="text-gray-400 text-xs">Last Update</p>
+      <p class="text-sm font-medium text-blue-400"><%= time_ago(@last_update) %></p>
+    </div>
+  </div>
+
+  <!-- Main Content Grid -->
+  <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+    
+    <!-- Left Column: Sentiment Analysis (Compact) -->
+    <div class="lg:col-span-1">
+      <div class="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
+        <h3 class="text-sm font-medium text-gray-300 mb-3">Global Sentiment</h3>
+        <div class="h-48">
+          <.live_component 
+            module={GlobalPulseWeb.GaugeComponent}
+            id="news-sentiment-gauge"
+            category={:sentiment}
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Content Overview -->
+    <div class="lg:col-span-3 space-y-4">
+      
+      <!-- Data Sources Status -->
+      <div class="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-medium text-white flex items-center">
+            <span class="relative flex h-2 w-2 mr-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+            </span>
+            Live Data Sources
+          </h3>
+          <span class="text-xs text-green-400"><%= map_size(@live_sources) %> Active</span>
+        </div>
+    
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <!-- RSS News Feeds -->
+      <div class="space-y-2">
+        <h3 class="text-sm font-medium text-gray-400 mb-2 flex items-center">
+          📰 News Agencies
+          <%= case @live_sources.rss do %>
+            <% :active -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-green-500/20 text-green-400 text-xs rounded animate-pulse">PULLING</span>
+            <% :connected -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-green-500/20 text-green-400 text-xs rounded">LIVE</span>
+            <% :error -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-red-500/20 text-red-400 text-xs rounded">ERROR</span>
+            <% _ -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-gray-500/20 text-gray-400 text-xs rounded">OFFLINE</span>
+          <% end %>
+        </h3>
+        <div class="space-y-1">
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class(@live_sources.bbc)}></span>
+              <span class={source_text_class(@live_sources.bbc)}>BBC World News</span>
+              <%= if format_http_code(Map.get(@http_codes, :bbc)) do %>
+                <span class="ml-1 text-gray-600 text-[10px]">(<%= format_http_code(Map.get(@http_codes, :bbc)) %>)</span>
+              <% end %>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">1m ago</span>
+          </div>
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class(@live_sources.reuters)}></span>
+              <span class={source_text_class(@live_sources.reuters)}>Reuters International</span>
+              <%= if format_http_code(Map.get(@http_codes, :reuters)) do %>
+                <span class="ml-1 text-gray-600 text-[10px]">(<%= format_http_code(Map.get(@http_codes, :reuters)) %>)</span>
+              <% end %>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">2m ago</span>
+          </div>
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class(@live_sources.ap)}></span>
+              <span class={source_text_class(@live_sources.ap)}>Associated Press</span>
+              <%= if format_http_code(Map.get(@http_codes, :ap)) do %>
+                <span class="ml-1 text-gray-600 text-[10px]">(<%= format_http_code(Map.get(@http_codes, :ap)) %>)</span>
+              <% end %>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">30s ago</span>
+          </div>
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class(@live_sources.el_pais)}></span>
+              <span class={source_text_class(@live_sources.el_pais)}>El País</span>
+              <%= if format_http_code(Map.get(@http_codes, :el_pais)) do %>
+                <span class="ml-1 text-gray-600 text-[10px]">(<%= format_http_code(Map.get(@http_codes, :el_pais)) %>)</span>
+              <% end %>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">1m ago</span>
+          </div>
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class(@live_sources.guardian)}></span>
+              <span class={source_text_class(@live_sources.guardian)}>The Guardian</span>
+              <%= if format_http_code(Map.get(@http_codes, :guardian)) do %>
+                <span class="ml-1 text-gray-600 text-[10px]">(<%= format_http_code(Map.get(@http_codes, :guardian)) %>)</span>
+              <% end %>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">3m ago</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Major Networks -->
+      <div class="space-y-2">
+        <h3 class="text-sm font-medium text-gray-400 mb-2 flex items-center">
+          📡 Major Networks
+          <%= case @live_sources.major_networks do %>
+            <% :active -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-green-500/20 text-green-400 text-xs rounded animate-pulse">PULLING</span>
+            <% :connected -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-green-500/20 text-green-400 text-xs rounded">LIVE</span>
+            <% :error -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-red-500/20 text-red-400 text-xs rounded">ERROR</span>
+            <% _ -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-gray-500/20 text-gray-400 text-xs rounded">OFFLINE</span>
+          <% end %>
+        </h3>
+        <div class="space-y-1">
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class(@live_sources.cnn)}></span>
+              <span class={source_text_class(@live_sources.cnn)}>CNN International</span>
+              <%= if format_http_code(Map.get(@http_codes, :cnn)) do %>
+                <span class="ml-1 text-gray-600 text-[10px]">(<%= format_http_code(Map.get(@http_codes, :cnn)) %>)</span>
+              <% end %>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">45s ago</span>
+          </div>
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class(@live_sources.npr)}></span>
+              <span class={source_text_class(@live_sources.npr)}>NPR News</span>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">1m ago</span>
+          </div>
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class(@live_sources.aljazeera)}></span>
+              <span class={source_text_class(@live_sources.aljazeera)}>Al Jazeera</span>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">30s ago</span>
+          </div>
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class(@live_sources.bbc_politics)}></span>
+              <span class={source_text_class(@live_sources.bbc_politics)}>BBC Politics</span>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">2m ago</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Social & Forums -->
+      <div class="space-y-2">
+        <h3 class="text-sm font-medium text-gray-400 mb-2 flex items-center">
+          💬 Social Feeds
+          <%= case @live_sources.reddit do %>
+            <% :active -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-orange-500/20 text-orange-400 text-xs rounded animate-pulse">PULLING</span>
+            <% :connected -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-orange-500/20 text-orange-400 text-xs rounded">LIVE</span>
+            <% :error -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-red-500/20 text-red-400 text-xs rounded">ERROR</span>
+            <% _ -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-gray-500/20 text-gray-400 text-xs rounded">OFFLINE</span>
+          <% end %>
+        </h3>
+        <div class="space-y-1">
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class_orange(@live_sources.reddit_worldnews)}></span>
+              <span class={source_text_class_orange(@live_sources.reddit_worldnews)}>Reddit r/worldnews</span>
+              <%= if format_http_code(Map.get(@http_codes, :reddit_worldnews)) do %>
+                <span class="ml-1 text-gray-600 text-[10px]">(<%= format_http_code(Map.get(@http_codes, :reddit_worldnews)) %>)</span>
+              <% end %>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">15s ago</span>
+          </div>
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class_orange(@live_sources.reddit_politics)}></span>
+              <span class={source_text_class_orange(@live_sources.reddit_politics)}>Reddit r/politics</span>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">45s ago</span>
+          </div>
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class_orange(@live_sources.reddit_news)}></span>
+              <span class={source_text_class_orange(@live_sources.reddit_news)}>Reddit r/news</span>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">1m ago</span>
+          </div>
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class_orange(@live_sources.reddit_geopolitics)}></span>
+              <span class={source_text_class_orange(@live_sources.reddit_geopolitics)}>Reddit r/geopolitics</span>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">20s ago</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Analytics & Events -->
+      <div class="space-y-2">
+        <h3 class="text-sm font-medium text-gray-400 mb-2 flex items-center">
+          📊 Analytics
+          <%= case @live_sources.analytics do %>
+            <% :active -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded animate-pulse">PROCESSING</span>
+            <% :connected -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded">LIVE</span>
+            <% :error -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-red-500/20 text-red-400 text-xs rounded">ERROR</span>
+            <% _ -> %>
+              <span class="ml-2 px-1.5 py-0.5 bg-gray-500/20 text-gray-400 text-xs rounded">OFFLINE</span>
+          <% end %>
+        </h3>
+        <div class="space-y-1">
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class_purple(@live_sources.analytics)}></span>
+              <span class={source_text_class_purple(@live_sources.analytics)}>Political Events</span>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">5m ago</span>
+          </div>
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class_blue(@live_sources.sentiment)}></span>
+              <span class={source_text_class_blue(@live_sources.sentiment)}>Sentiment Analysis</span>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">Live</span>
+          </div>
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class_purple(@live_sources.analytics)}></span>
+              <span class={source_text_class_purple(@live_sources.analytics)}>Trend Detection</span>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">2m ago</span>
+          </div>
+          <div class="flex items-center justify-between text-xs group">
+            <div class="flex items-center">
+              <span class={source_indicator_class_yellow(@live_sources.anomaly)}></span>
+              <span class={source_text_class_yellow(@live_sources.anomaly)}>Anomaly Detection</span>
+            </div>
+            <span class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">3 alerts</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Data Source Stats -->
+    <div class="mt-4 pt-4 border-t border-gray-700">
+      <div class="flex items-center justify-between text-xs text-gray-400">
+        <div class="flex items-center space-x-4">
+          <span>13+ RSS Feeds</span>
+          <span>•</span>
+          <span>4 Reddit Communities</span>
+          <span>•</span>
+          <span>Real-time Sentiment</span>
+          <span>•</span>
+          <span>1-min Updates</span>
+        </div>
+        <div class="flex items-center space-x-3">
+          <span class="flex items-center">
+            <span class="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
+            Live
+          </span>
+          <span class="flex items-center">
+            <span class="w-2 h-2 bg-orange-500 rounded-full mr-1"></span>
+            Social
+          </span>
+          <span class="flex items-center">
+            <span class="w-2 h-2 bg-purple-500 rounded-full mr-1"></span>
+            Analytics
+          </span>
+          <span class="flex items-center">
+            <span class="w-2 h-2 bg-yellow-500 rounded-full mr-1"></span>
+            Anomaly
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Breaking News Section -->
+  <%= if length(@breaking_news) > 0 do %>
+    <div class="mb-8">
+      <h2 class="text-xl font-semibold text-white mb-4 flex items-center">
+        <svg class="h-5 w-5 text-red-400 mr-2 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+        </svg>
+        Breaking News
+      </h2>
+      
+      <div class="grid gap-4">
+        <%= for article <- Enum.take(@breaking_news, 3) do %>
+          <div class="bg-red-900/20 border-l-4 border-red-500 p-4 rounded-lg">
+            <div class="flex justify-between items-start mb-2">
+              <h3 class="font-semibold text-white text-lg leading-tight"><%= article.title %></h3>
+              <span class="bg-red-500/20 text-red-400 px-2 py-1 rounded text-xs font-medium ml-4 flex-shrink-0">LIVE</span>
+            </div>
+            
+            <%= if Map.has_key?(article, :description) && article.description do %>
+              <p class="text-gray-300 text-sm mb-3"><%= truncate_text(article.description) %></p>
+            <% end %>
+            
+            <div class="flex items-center justify-between text-xs text-gray-400">
+              <div class="flex items-center space-x-4">
+                <span><%= article.source %></span>
+                <span><%= format_time_ago(article.published_at) %></span>
+                <%= if Map.has_key?(article, :importance_score) do %>
+                  <span class={importance_color(article.importance_score)}>
+                    Priority: <%= Float.round((article.importance_score || 0) * 100) %>%
+                  </span>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Category Filter -->
+  <div class="mb-6">
+    <div class="flex flex-wrap gap-2">
+      <%= for category <- @available_categories do %>
+        <button 
+          phx-click="filter_category" 
+          phx-value-category={category}
+          class={[
+            "px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200",
+            if(@selected_category == category, 
+              do: "bg-blue-600 text-white", 
+              else: "bg-gray-700 text-gray-300 hover:bg-gray-600")
+          ]}
+        >
+          <%= String.capitalize(category) %>
+        </button>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Sentiment Analysis Transparency -->
+  <div class="mb-8">
+    <.live_component 
+      module={GlobalPulseWeb.SentimentTransparencyLive} 
+      id="sentiment-transparency"
+    />
+  </div>
+
+  <!-- Articles Grid -->
+  <div class="grid gap-6" id="articles-grid">
+    <%= for {article, index} <- filter_articles_by_category(@all_articles, @selected_category) |> Enum.with_index() do %>
+      <div 
+        class={"bg-gray-800 p-6 rounded-lg hover:bg-gray-750 transition-all duration-300 #{if index < 3, do: "animate-pulse border-l-2 border-blue-500/50"}"} 
+        id={"article-#{index}"}
+      >
+        <!-- Article Header -->
+        <div class="flex justify-between items-start mb-3">
+          <h3 class="font-semibold text-white text-lg leading-tight flex-grow mr-4">
+            <%= if Map.has_key?(article, :url) && article.url && article.url != "#" do %>
+              <a href={article.url} target="_blank" rel="noopener noreferrer" class="hover:text-blue-400 transition-colors">
+                <%= article.title %>
+                <svg class="inline h-4 w-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                </svg>
+              </a>
+            <% else %>
+              <%= article.title %>
+            <% end %>
+          </h3>
+          
+          <!-- Urgency Badge -->
+          <%= if Map.has_key?(article, :urgency) && article.urgency not in [nil, :normal] do %>
+            <span class={["px-2 py-1 rounded text-xs font-medium", urgency_badge(article.urgency)]}>
+              <%= String.upcase(to_string(article.urgency)) %>
+            </span>
+          <% end %>
+        </div>
+
+        <!-- Article Description -->
+        <%= if Map.has_key?(article, :description) && article.description && article.description != "" do %>
+          <p class="text-gray-300 text-sm mb-4 leading-relaxed"><%= truncate_text(article.description) %></p>
+        <% end %>
+
+        <!-- Categories -->
+        <%= if Map.has_key?(article, :categories) && length(article.categories || []) > 0 do %>
+          <div class="flex flex-wrap gap-2 mb-4">
+            <%= for category <- Enum.take(article.categories, 3) do %>
+              <span class={["px-2 py-1 rounded text-xs font-medium", category_badge_color(category)]}>
+                <%= String.capitalize(category) %>
+              </span>
+            <% end %>
+          </div>
+        <% end %>
+
+        <!-- Article Metadata -->
+        <div class="flex items-center justify-between text-xs text-gray-400">
+          <div class="flex items-center space-x-4">
+            <span class="font-medium"><%= article.source %></span>
+            <span><%= format_time_ago(article.published_at) %></span>
+            
+            <%= if Map.has_key?(article, :sentiment) && article.sentiment do %>
+              <span class={["font-medium", news_sentiment_color(article.sentiment)]}>
+                Sentiment: <%= if article.sentiment > 0, do: "+", else: "" %><%= Float.round(article.sentiment, 2) %>
+              </span>
+            <% end %>
+
+            <%= if Map.has_key?(article, :importance_score) do %>
+              <span class={["font-medium", importance_color(article.importance_score)]}>
+                Priority: <%= Float.round((article.importance_score || 0) * 100) %>%
+              </span>
+            <% end %>
+          </div>
+
+          <!-- Threat Level Indicator -->
+          <%= if Map.has_key?(article, :threat_level) && article.threat_level && article.threat_level > 30 do %>
+            <div class="flex items-center space-x-2">
+              <span class="text-gray-500">Threat:</span>
+              <div class="flex items-center">
+                <div class={["w-2 h-2 rounded-full", threat_level_color(article.threat_level)]}></div>
+                <span class="ml-1 text-xs"><%= article.threat_level %>%</span>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Load More / Pagination could go here -->
+  <div class="text-center mt-8">
+    <p class="text-gray-400 text-sm">
+      Showing all <%= length(filter_articles_by_category(@all_articles, @selected_category)) %> data points
+    </p>
+  </div>
+</div>

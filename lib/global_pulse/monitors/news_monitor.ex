@@ -277,6 +277,10 @@ defmodule GlobalPulse.NewsMonitor do
     }
     
     Logger.info("📰 NEWS MONITOR: Sentiment - Overall: #{sentiment_analysis.overall}, News: #{sentiment_analysis.news}, Social: #{sentiment_analysis.social}")
+    
+    # Update gauge system with real-time sentiment data
+    update_sentiment_gauges(sentiment_analysis, bias_report)
+    
     %{state | sentiment_analysis: sentiment_analysis, bias_report: bias_report}
   end
 
@@ -345,6 +349,50 @@ defmodule GlobalPulse.NewsMonitor do
         end
       _ -> "stable"
     end
+  end
+
+  # Update gauge system with sentiment data
+  defp update_sentiment_gauges(sentiment_analysis, bias_report) do
+    # Update sentiment gauge with overall sentiment
+    confidence = if bias_report do
+      # Calculate confidence based on bias report
+      base_confidence = 0.7
+      
+      # Reduce confidence for high bias
+      bias_penalty = case length(bias_report.potential_biases || []) do
+        n when n > 3 -> 0.3
+        n when n > 1 -> 0.2
+        _ -> 0.0
+      end
+      
+      # Increase confidence for balanced coverage
+      balance_bonus = if "balanced_coverage" in (bias_report.potential_biases || []) do
+        0.2
+      else
+        0.0
+      end
+      
+      max(0.3, min(1.0, base_confidence - bias_penalty + balance_bonus))
+    else
+      0.5  # Default confidence when no bias report
+    end
+    
+    # Prepare metadata for gauge update
+    metadata = %{
+      confidence: confidence,
+      bias_report: bias_report,
+      trend: sentiment_analysis.trend,
+      source: "news_monitor"
+    }
+    
+    # Update sentiment gauge - convert from [0,1] scale to match gauge expectations
+    GlobalPulse.Services.GaugeDataManager.update_value(
+      :sentiment, 
+      sentiment_analysis.overall, 
+      metadata
+    )
+    
+    Logger.info("🎯 GAUGE UPDATE: Sentiment gauge updated - value: #{sentiment_analysis.overall}, confidence: #{Float.round(confidence, 2)}")
   end
 
   # ============================================================================

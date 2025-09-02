@@ -83,6 +83,12 @@ defmodule GlobalPulseWeb.DashboardLive.Index do
      |> assign(:recent_anomalies, recent)
      |> assign(:anomaly_count, length(recent))}
   end
+
+  def handle_info({:trends_update, trends}, socket) do
+    # Handle trends update from GoogleTrendsMonitor
+    updated_trends = extract_trends_summary(trends)
+    {:noreply, assign(socket, :trends_summary, updated_trends)}
+  end
   
   defp get_financial_summary do
     %{
@@ -185,6 +191,41 @@ defmodule GlobalPulseWeb.DashboardLive.Index do
       space_weather: data[:space_weather][:geomagnetic_storm][:severity] || "Quiet"
     }
   end
+
+  defp extract_trends_summary(trends) when is_list(trends) do
+    %{
+      trending_count: length(trends),
+      top_trend: List.first(trends),
+      threat_level: calculate_trends_threat_level(trends),
+      categories: extract_trend_categories(trends)
+    }
+  end
+  defp extract_trends_summary(_), do: %{trending_count: 0, top_trend: nil, threat_level: 0, categories: []}
+
+  defp calculate_trends_threat_level(trends) when is_list(trends) do
+    if length(trends) > 0 do
+      avg_threat = trends
+      |> Enum.map(fn trend -> trend.threat_level || 0 end)
+      |> Enum.sum()
+      |> div(length(trends))
+      
+      min(100, max(0, avg_threat))
+    else
+      0
+    end
+  end
+  defp calculate_trends_threat_level(_), do: 0
+
+  defp extract_trend_categories(trends) when is_list(trends) do
+    trends
+    |> Enum.map(fn trend -> trend.category end)
+    |> Enum.filter(&(&1 != nil))
+    |> Enum.frequencies()
+    |> Map.to_list()
+    |> Enum.sort_by(&elem(&1, 1), :desc)
+    |> Enum.take(3)
+  end
+  defp extract_trend_categories(_), do: []
   
   defp get_top_movers(data) do
     []

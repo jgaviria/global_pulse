@@ -2,9 +2,10 @@
   "dependencies": {
     "@types/d3": "^7.4.3",
     "@types/three": "^0.179.0",
+    "apexcharts": "^5.3.4",
     "d3": "^7.9.0",
+    "globe.gl": "^2.31.1",
     "gsap": "^3.13.0",
-    "three": "^0.179.1",
-    "globe.gl": "^2.31.1"
+    "three": "^0.179.1"
   }
 }

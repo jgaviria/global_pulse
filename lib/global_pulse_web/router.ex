@@ -23,6 +23,9 @@ defmodule GlobalPulseWeb.Router do
     live "/trends", TrendsLive.Index, :index
     live "/natural", NaturalEventsLive.Index, :index
     live "/anomalies", AnomaliesLive.Index, :index
+    live "/gauges", GaugeDemoLive, :index
+    live "/gauge-test", GaugeTestLive, :index
+    live "/simple-test", SimpleTestLive, :index
   end
 
   if Application.compile_env(:global_pulse, :dev_routes) do

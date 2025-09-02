@@ -9,6 +9,7 @@ defmodule GlobalPulse.Application do
       {Cachex, name: :global_cache},
       GlobalPulse.DataStore,
       GlobalPulse.StreamSupervisor,
+      {GlobalPulse.Services.GaugeDataManager, []},
       {GlobalPulse.FinancialMonitor, []},
       {GlobalPulse.NewsMonitor, []},
       {GlobalPulse.NaturalEventsMonitor, []},

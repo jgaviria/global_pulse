@@ -86,12 +86,13 @@ const topbar = (function() {
       this.progress(0);
       
       if (options.autoRun) {
+        var self = this;
         (function loop() {
           progressTimerId = requestAnimationFrame(loop);
-          this.progress(
+          self.progress(
             "+" + 0.05 * Math.pow(1 - Math.sqrt(currentProgress), 2)
           );
-        }.bind(this))();
+        })();
       }
     },
 
@@ -116,8 +117,9 @@ const topbar = (function() {
         progressTimerId = null;
       }
       
+      var self = this;
       (function loop() {
-        if (this.progress("+.1") >= 1) {
+        if (self.progress("+.1") >= 1) {
           canvas.style.opacity -= 0.05;
           if (canvas.style.opacity <= 0.05) {
             canvas.style.display = "none";
@@ -126,7 +128,7 @@ const topbar = (function() {
           }
         }
         fadeTimerId = requestAnimationFrame(loop);
-      }.bind(this))();
+      })();
     },
   };
 })();
